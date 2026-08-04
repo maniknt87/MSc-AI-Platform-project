@@ -2,7 +2,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
-
+import { deployLandingZone } from "../../services/api";
 import SummaryCard from "../common/SummaryCard";
 
 import { deploymentResources } from "../../constants/deploymentResources";

@@ -14,6 +14,8 @@ import EnvironmentStep from "../components/wizard/EnvironmentStep";
 import RegionStep from "../components/wizard/RegionStep";
 import ReviewStep from "../components/wizard/ReviewStep";
 
+import { deployLandingZone } from "../services/api";
+
 const steps = [
   "Cloud",
   "Workload",
@@ -25,6 +27,8 @@ const steps = [
 function DeploymentPlanner() {
 
   const [activeStep, setActiveStep] = useState(0);
+
+  const [loading, setLoading] = useState(false);
 
   const [deploymentRequest, setDeploymentRequest] = useState({
     cloud: "",
@@ -39,6 +43,32 @@ function DeploymentPlanner() {
 
   const handleBack = () => {
     setActiveStep((prev) => prev - 1);
+  };
+
+  const handleProvision = async () => {
+
+    try {
+
+      setLoading(true);
+
+      const response = await deployLandingZone(deploymentRequest);
+
+      console.log("Backend Response:", response);
+
+      alert(response.message);
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert("Deployment Failed");
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
   };
 
   return (
@@ -121,20 +151,32 @@ function DeploymentPlanner() {
         >
 
           <Button
-            disabled={activeStep === 0}
+            disabled={activeStep === 0 || loading}
             onClick={handleBack}
           >
             Back
           </Button>
 
-          <Button
-            variant="contained"
-            onClick={handleNext}
-          >
-            {activeStep === steps.length - 1
-              ? "Provision Landing Zone"
-              : "Next"}
-          </Button>
+          {activeStep === steps.length - 1 ? (
+
+            <Button
+              variant="contained"
+              onClick={handleProvision}
+              disabled={loading}
+            >
+              {loading ? "Provisioning..." : "Provision Landing Zone"}
+            </Button>
+
+          ) : (
+
+            <Button
+              variant="contained"
+              onClick={handleNext}
+            >
+              Next
+            </Button>
+
+          )}
 
         </Box>
 

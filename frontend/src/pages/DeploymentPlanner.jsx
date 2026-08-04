@@ -11,6 +11,7 @@ import Button from "@mui/material/Button";
 import CloudStep from "../components/wizard/CloudStep";
 import WorkloadStep from "../components/wizard/WorkloadStep";
 import EnvironmentStep from "../components/wizard/EnvironmentStep";
+import RegionStep from "../components/wizard/RegionStep";
 
 const steps = [
   "Cloud",
@@ -40,6 +41,7 @@ function DeploymentPlanner() {
   };
 
   return (
+
     <Box sx={{ p: 4 }}>
 
       <Typography
@@ -52,72 +54,85 @@ function DeploymentPlanner() {
 
       <Paper sx={{ p: 4 }}>
 
-        <Stepper activeStep={activeStep} sx={{ mb: 5 }}>
+        <Stepper
+          activeStep={activeStep}
+          sx={{ mb: 5 }}
+        >
+
           {steps.map((label) => (
+
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
             </Step>
+
           ))}
+
         </Stepper>
 
         {/* STEP 1 */}
 
         {activeStep === 0 && (
+
           <CloudStep
             deploymentRequest={deploymentRequest}
             setDeploymentRequest={setDeploymentRequest}
           />
+
         )}
 
         {/* STEP 2 */}
 
         {activeStep === 1 && (
+
           <WorkloadStep
             deploymentRequest={deploymentRequest}
             setDeploymentRequest={setDeploymentRequest}
           />
+
         )}
 
         {/* STEP 3 */}
 
         {activeStep === 2 && (
+
           <EnvironmentStep
             deploymentRequest={deploymentRequest}
             setDeploymentRequest={setDeploymentRequest}
           />
+
         )}
 
         {/* STEP 4 */}
 
         {activeStep === 3 && (
-          <Typography
-            variant="h6"
-            align="center"
-          >
-            Region Step Coming Soon...
-          </Typography>
+
+          <RegionStep
+            deploymentRequest={deploymentRequest}
+            setDeploymentRequest={setDeploymentRequest}
+          />
+
         )}
 
         {/* STEP 5 */}
 
         {activeStep === 4 && (
+
           <Typography
-            variant="h6"
+            variant="h5"
             align="center"
           >
-            Review Step Coming Soon...
+            Review Page Coming Soon...
           </Typography>
-        )}
 
-        {/* Current Deployment Request */}
+        )}
 
         <Box
           sx={{
             mt: 5,
             p: 2,
             bgcolor: "#f5f5f5",
-            borderRadius: 2,
-            border: "1px solid #ddd"
+            border: "1px solid #ddd",
+            borderRadius: 2
           }}
         >
 
@@ -146,8 +161,6 @@ function DeploymentPlanner() {
 
         </Box>
 
-        {/* Navigation */}
-
         <Box
           sx={{
             display: "flex",
@@ -175,6 +188,7 @@ function DeploymentPlanner() {
       </Paper>
 
     </Box>
+
   );
 
 }

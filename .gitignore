@@ -1,0 +1,25 @@
+# Node
+node_modules/
+dist/
+
+# Logs
+*.log
+
+# Environment Variables
+.env
+
+# VS Code
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# OS Files
+Thumbs.db
+.DS_Store

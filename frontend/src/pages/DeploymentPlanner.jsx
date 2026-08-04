@@ -10,6 +10,7 @@ import Button from "@mui/material/Button";
 
 import CloudStep from "../components/wizard/CloudStep";
 import WorkloadStep from "../components/wizard/WorkloadStep";
+import EnvironmentStep from "../components/wizard/EnvironmentStep";
 
 const steps = [
   "Cloud",
@@ -51,12 +52,7 @@ function DeploymentPlanner() {
 
       <Paper sx={{ p: 4 }}>
 
-        {/* Stepper */}
-
-        <Stepper
-          activeStep={activeStep}
-          sx={{ mb: 5 }}
-        >
+        <Stepper activeStep={activeStep} sx={{ mb: 5 }}>
           {steps.map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
@@ -64,7 +60,7 @@ function DeploymentPlanner() {
           ))}
         </Stepper>
 
-        {/* Step 1 */}
+        {/* STEP 1 */}
 
         {activeStep === 0 && (
           <CloudStep
@@ -73,7 +69,7 @@ function DeploymentPlanner() {
           />
         )}
 
-        {/* Step 2 */}
+        {/* STEP 2 */}
 
         {activeStep === 1 && (
           <WorkloadStep
@@ -82,18 +78,16 @@ function DeploymentPlanner() {
           />
         )}
 
-        {/* Step 3 */}
+        {/* STEP 3 */}
 
         {activeStep === 2 && (
-          <Typography
-            variant="h6"
-            align="center"
-          >
-            Environment Step Coming Soon...
-          </Typography>
+          <EnvironmentStep
+            deploymentRequest={deploymentRequest}
+            setDeploymentRequest={setDeploymentRequest}
+          />
         )}
 
-        {/* Step 4 */}
+        {/* STEP 4 */}
 
         {activeStep === 3 && (
           <Typography
@@ -104,7 +98,7 @@ function DeploymentPlanner() {
           </Typography>
         )}
 
-        {/* Step 5 */}
+        {/* STEP 5 */}
 
         {activeStep === 4 && (
           <Typography
@@ -122,8 +116,8 @@ function DeploymentPlanner() {
             mt: 5,
             p: 2,
             bgcolor: "#f5f5f5",
-            border: "1px solid #ddd",
-            borderRadius: 2
+            borderRadius: 2,
+            border: "1px solid #ddd"
           }}
         >
 
@@ -152,7 +146,7 @@ function DeploymentPlanner() {
 
         </Box>
 
-        {/* Navigation Buttons */}
+        {/* Navigation */}
 
         <Box
           sx={{

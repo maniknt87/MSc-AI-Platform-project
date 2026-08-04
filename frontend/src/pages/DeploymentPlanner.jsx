@@ -12,6 +12,7 @@ import CloudStep from "../components/wizard/CloudStep";
 import WorkloadStep from "../components/wizard/WorkloadStep";
 import EnvironmentStep from "../components/wizard/EnvironmentStep";
 import RegionStep from "../components/wizard/RegionStep";
+import ReviewStep from "../components/wizard/ReviewStep";
 
 const steps = [
   "Cloud",
@@ -58,108 +59,58 @@ function DeploymentPlanner() {
           activeStep={activeStep}
           sx={{ mb: 5 }}
         >
-
           {steps.map((label) => (
-
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
             </Step>
-
           ))}
-
         </Stepper>
 
         {/* STEP 1 */}
 
         {activeStep === 0 && (
-
           <CloudStep
             deploymentRequest={deploymentRequest}
             setDeploymentRequest={setDeploymentRequest}
           />
-
         )}
 
         {/* STEP 2 */}
 
         {activeStep === 1 && (
-
           <WorkloadStep
             deploymentRequest={deploymentRequest}
             setDeploymentRequest={setDeploymentRequest}
           />
-
         )}
 
         {/* STEP 3 */}
 
         {activeStep === 2 && (
-
           <EnvironmentStep
             deploymentRequest={deploymentRequest}
             setDeploymentRequest={setDeploymentRequest}
           />
-
         )}
 
         {/* STEP 4 */}
 
         {activeStep === 3 && (
-
           <RegionStep
             deploymentRequest={deploymentRequest}
             setDeploymentRequest={setDeploymentRequest}
           />
-
         )}
 
         {/* STEP 5 */}
 
         {activeStep === 4 && (
-
-          <Typography
-            variant="h5"
-            align="center"
-          >
-            Review Page Coming Soon...
-          </Typography>
-
+          <ReviewStep
+            deploymentRequest={deploymentRequest}
+          />
         )}
 
-        <Box
-          sx={{
-            mt: 5,
-            p: 2,
-            bgcolor: "#f5f5f5",
-            border: "1px solid #ddd",
-            borderRadius: 2
-          }}
-        >
-
-          <Typography
-            variant="h6"
-            gutterBottom
-          >
-            Current Deployment Request
-          </Typography>
-
-          <Typography>
-            <strong>Cloud:</strong> {deploymentRequest.cloud || "Not Selected"}
-          </Typography>
-
-          <Typography>
-            <strong>Workload:</strong> {deploymentRequest.workload || "Not Selected"}
-          </Typography>
-
-          <Typography>
-            <strong>Environment:</strong> {deploymentRequest.environment || "Not Selected"}
-          </Typography>
-
-          <Typography>
-            <strong>Region:</strong> {deploymentRequest.region || "Not Selected"}
-          </Typography>
-
-        </Box>
+        {/* Navigation */}
 
         <Box
           sx={{
@@ -180,7 +131,9 @@ function DeploymentPlanner() {
             variant="contained"
             onClick={handleNext}
           >
-            Next
+            {activeStep === steps.length - 1
+              ? "Provision Landing Zone"
+              : "Next"}
           </Button>
 
         </Box>

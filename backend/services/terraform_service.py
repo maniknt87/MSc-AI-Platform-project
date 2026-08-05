@@ -1,17 +1,5 @@
 import subprocess
-from pathlib import Path
-
-
-# ----------------------------------------------------
-# Terraform Working Directory
-# ----------------------------------------------------
-
-TERRAFORM_DIRECTORY = (
-    Path(__file__)
-    .resolve()
-    .parent.parent
-    / "terraform"
-)
+from config.settings import TERRAFORM_DIRECTORY
 
 
 # ----------------------------------------------------

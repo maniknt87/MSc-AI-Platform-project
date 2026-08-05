@@ -2,14 +2,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routes.deployment import router as deployment_router
+from routes.governance import router as governance_router
 
 app = FastAPI(
-    title="Landing Zone Platform API",
-    version="1.0.0",
-    description="Backend API for Cloud Landing Zone Provisioning"
+    title="Multi-Cloud Governance & Landing Zone Orchestration Platform API",
+    version="1.1.0",
+    description="Backend API for Multi-Cloud Governance and Landing Zone Orchestration"
 )
 
+# ---------------------------------------------
 # Allow React Frontend
+# ---------------------------------------------
+
 origins = [
     "http://localhost:5173",
 ]
@@ -22,11 +26,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(deployment_router)
+# ---------------------------------------------
+# API Routes
+# ---------------------------------------------
 
+app.include_router(deployment_router)
+app.include_router(governance_router)
+
+# ---------------------------------------------
+# Root Endpoint
+# ---------------------------------------------
 
 @app.get("/")
 def home():
+
     return {
-        "message": "Landing Zone Platform API is running successfully."
+        "application": "Multi-Cloud Governance & Landing Zone Orchestration Platform",
+        "version": "1.1.0",
+        "status": "Running"
     }

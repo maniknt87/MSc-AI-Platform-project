@@ -6,6 +6,7 @@ import Navbar from "../components/Navbar";
 
 import DeploymentPlanner from "../pages/DeploymentPlanner";
 import DeploymentDashboard from "../pages/DeploymentDashboard";
+import GovernanceCenter from "../pages/GovernanceCenter";
 
 function MainLayout() {
 
@@ -28,6 +29,10 @@ function MainLayout() {
 
         {currentPage === "dashboard" && (
           <DeploymentDashboard />
+        )}
+
+        {currentPage === "governance" && (
+          <GovernanceCenter />
         )}
 
       </Box>

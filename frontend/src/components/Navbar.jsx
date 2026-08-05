@@ -7,13 +7,18 @@ import Box from "@mui/material/Box";
 function Navbar({ currentPage, setCurrentPage }) {
   return (
     <AppBar position="static">
+
       <Toolbar>
 
         <Typography
           variant="h6"
-          sx={{ flexGrow: 1 }}
+          sx={{
+            flexGrow: 1,
+            fontWeight: "bold"
+          }}
         >
-          Enterprise Landing Zone Platform
+          Multi-Cloud Governance &
+          Landing Zone Orchestration Platform
         </Typography>
 
         <Box>
@@ -22,19 +27,27 @@ function Navbar({ currentPage, setCurrentPage }) {
             color="inherit"
             onClick={() => setCurrentPage("planner")}
           >
-            New Deployment
+            🚀 New Deployment
           </Button>
 
           <Button
             color="inherit"
             onClick={() => setCurrentPage("dashboard")}
           >
-            Deployment Dashboard
+            📊 Dashboard
+          </Button>
+
+          <Button
+            color="inherit"
+            onClick={() => setCurrentPage("governance")}
+          >
+            🛡 Governance
           </Button>
 
         </Box>
 
       </Toolbar>
+
     </AppBar>
   );
 }

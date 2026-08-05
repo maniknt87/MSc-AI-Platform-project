@@ -1,6 +1,6 @@
 from services.azure_devops import queue_pipeline
 from services.deployment_history import save_deployment
-
+from services.policy_service import validate_policy
 
 def process_deployment(deployment):
 
@@ -8,6 +8,19 @@ def process_deployment(deployment):
     workload = deployment.workload
     environment = deployment.environment
     region = deployment.region
+
+        # ----------------------------------
+    # Governance Validation
+    # ----------------------------------
+
+    policy_result = validate_policy(deployment)
+
+    if not policy_result["allowed"]:
+
+        return {
+            "status": "Governance Failed",
+            "policy": policy_result
+        }
 
     deployment_plan = {}
 

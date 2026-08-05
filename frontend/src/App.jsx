@@ -1,7 +1,7 @@
-import DeploymentPlanner from "./pages/DeploymentPlanner";
+import MainLayout from "./layouts/MainLayout";
 
 function App() {
-  return <DeploymentPlanner />;
+  return <MainLayout />;
 }
 
 export default App;

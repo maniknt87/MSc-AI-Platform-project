@@ -1,19 +1,23 @@
-const API_URL = "http://127.0.0.1:8000";
+import axios from "axios";
 
-export async function deployLandingZone(deploymentRequest) {
+const API = axios.create({
+  baseURL: "http://127.0.0.1:8000",
+});
 
-    const response = await fetch(`${API_URL}/deploy`, {
+// ----------------------------
+// Deploy Landing Zone
+// ----------------------------
 
-        method: "POST",
+export const deployLandingZone = async (deploymentRequest) => {
+  const response = await API.post("/deploy", deploymentRequest);
+  return response.data;
+};
 
-        headers: {
-            "Content-Type": "application/json"
-        },
+// ----------------------------
+// Get Deployment History
+// ----------------------------
 
-        body: JSON.stringify(deploymentRequest)
-
-    });
-
-    return response.json();
-
-}
+export const getDeployments = async () => {
+  const response = await API.get("/deployments");
+  return response.data;
+};

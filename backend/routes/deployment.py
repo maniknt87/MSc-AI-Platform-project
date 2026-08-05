@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from models.deployment import DeploymentRequest
 from services.deployment_service import process_deployment
+from services.deployment_history import get_deployment_history
 
 router = APIRouter()
 
@@ -16,4 +17,13 @@ def deploy(request: DeploymentRequest):
         "message": "Deployment pipeline queued successfully.",
         "deployment": request.model_dump(),
         "result": deployment
+    }
+
+
+@router.get("/deployments")
+def get_deployments():
+
+    return {
+        "count": len(get_deployment_history()),
+        "deployments": get_deployment_history()
     }

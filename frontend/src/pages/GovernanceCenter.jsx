@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import {
   Box,
   Typography,
@@ -9,7 +11,30 @@ import {
   Chip,
 } from "@mui/material";
 
+import { getGovernanceSettings } from "../services/api";
+
 function GovernanceCenter() {
+
+  const [settings, setSettings] = useState({
+    clouds: [],
+    environments: [],
+    workloads: [],
+    regions: {}
+  });
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  async function loadSettings() {
+
+    const response = await getGovernanceSettings();
+
+    console.log(response);
+
+    setSettings(response);
+
+  }
 
   return (
 
@@ -31,6 +56,10 @@ function GovernanceCenter() {
 
       <Grid container spacing={3}>
 
+        {/* ---------------------------------- */}
+        {/* Cloud Providers */}
+        {/* ---------------------------------- */}
+
         <Grid item xs={12} md={6}>
 
           <Paper sx={{ p:3 }}>
@@ -41,21 +70,30 @@ function GovernanceCenter() {
 
             <List>
 
-              <ListItem>
-                <ListItemText primary="Microsoft Azure" />
-                <Chip label="Allowed" color="success" />
-              </ListItem>
+              {settings.clouds.map((cloud) => (
 
-              <ListItem>
-                <ListItemText primary="Amazon Web Services" />
-                <Chip label="Allowed" color="success" />
-              </ListItem>
+                <ListItem key={cloud}>
+
+                  <ListItemText primary={cloud} />
+
+                  <Chip
+                    label="Allowed"
+                    color="success"
+                  />
+
+                </ListItem>
+
+              ))}
 
             </List>
 
           </Paper>
 
         </Grid>
+
+        {/* ---------------------------------- */}
+        {/* Environments */}
+        {/* ---------------------------------- */}
 
         <Grid item xs={12} md={6}>
 
@@ -67,49 +105,49 @@ function GovernanceCenter() {
 
             <List>
 
-              <ListItem>
-                <ListItemText primary="Development" />
-              </ListItem>
+              {settings.environments.map((environment) => (
 
-              <ListItem>
-                <ListItemText primary="Testing" />
-              </ListItem>
+                <ListItem key={environment}>
 
-              <ListItem>
-                <ListItemText primary="Production" />
-              </ListItem>
+                  <ListItemText
+                    primary={environment}
+                  />
+
+                </ListItem>
+
+              ))}
 
             </List>
 
           </Paper>
 
         </Grid>
+
+        {/* ---------------------------------- */}
+        {/* Workloads */}
+        {/* ---------------------------------- */}
 
         <Grid item xs={12} md={6}>
 
           <Paper sx={{ p:3 }}>
 
             <Typography variant="h6" gutterBottom>
-              Governance Policies
+              Allowed Workloads
             </Typography>
 
             <List>
 
-              <ListItem>
-                <ListItemText primary="Cloud Policy" />
-              </ListItem>
+              {settings.workloads.map((workload) => (
 
-              <ListItem>
-                <ListItemText primary="Environment Policy" />
-              </ListItem>
+                <ListItem key={workload}>
 
-              <ListItem>
-                <ListItemText primary="Region Policy" />
-              </ListItem>
+                  <ListItemText
+                    primary={workload}
+                  />
 
-              <ListItem>
-                <ListItemText primary="Workload Policy" />
-              </ListItem>
+                </ListItem>
+
+              ))}
 
             </List>
 
@@ -117,7 +155,46 @@ function GovernanceCenter() {
 
         </Grid>
 
+        {/* ---------------------------------- */}
+        {/* Regions */}
+        {/* ---------------------------------- */}
+
         <Grid item xs={12} md={6}>
+
+          <Paper sx={{ p:3 }}>
+
+            <Typography variant="h6" gutterBottom>
+              Approved Regions
+            </Typography>
+
+            <List>
+
+              {Object.entries(settings.regions).map(
+                ([cloud, regions]) => (
+
+                  <ListItem key={cloud}>
+
+                    <ListItemText
+                      primary={cloud}
+                      secondary={regions.join(", ")}
+                    />
+
+                  </ListItem>
+
+                )
+              )}
+
+            </List>
+
+          </Paper>
+
+        </Grid>
+
+        {/* ---------------------------------- */}
+        {/* OPA */}
+        {/* ---------------------------------- */}
+
+        <Grid item xs={12}>
 
           <Paper sx={{ p:3 }}>
 

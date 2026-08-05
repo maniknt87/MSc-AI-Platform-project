@@ -98,7 +98,7 @@ def process_deployment(deployment):
     # Execute Terraform
     # ------------------------------------
 
-    terraform_result = execute_terraform()
+    terraform_result = execute_terraform(deployment)
 
     # ------------------------------------
     # Save Deployment History

@@ -1,6 +1,8 @@
 from services.azure_devops import queue_pipeline
 from services.deployment_history import save_deployment
 from services.policy_service import validate_policy
+from services.terraform_service import execute_terraform
+
 
 def process_deployment(deployment):
 
@@ -9,7 +11,7 @@ def process_deployment(deployment):
     environment = deployment.environment
     region = deployment.region
 
-        # ----------------------------------
+    # ----------------------------------
     # Governance Validation
     # ----------------------------------
 
@@ -86,17 +88,35 @@ def process_deployment(deployment):
             "status": "Unsupported Deployment"
         }
 
-    # Queue Pipeline
+    # ------------------------------------
+    # Queue Azure DevOps Pipeline
+    # ------------------------------------
+
     pipeline = queue_pipeline(deployment)
 
+    # ------------------------------------
+    # Execute Terraform
+    # ------------------------------------
+
+    terraform_result = execute_terraform()
+
+    # ------------------------------------
     # Save Deployment History
+    # ------------------------------------
+
     deployment_record = save_deployment(
         deployment,
         pipeline
     )
 
+    # ------------------------------------
+    # Return Complete Response
+    # ------------------------------------
+
     return {
         "plan": deployment_plan,
+        "policy": policy_result,
         "pipeline": pipeline,
+        "terraform": terraform_result,
         "deployment_record": deployment_record
     }

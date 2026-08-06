@@ -2,6 +2,7 @@ from services.azure_devops import queue_pipeline
 from services.deployment_history import save_deployment
 from services.policy_service import validate_policy
 from services.terraform_service import execute_terraform
+from services.deployment_lifecycle import start_deployment_lifecycle
 
 
 def process_deployment(deployment):
@@ -82,6 +83,10 @@ def process_deployment(deployment):
                 "status": "Ready for AWS AI Deployment"
             }
 
+    # ------------------------------------
+    # Unsupported Deployment
+    # ------------------------------------
+
     if not deployment_plan:
 
         return {
@@ -107,6 +112,14 @@ def process_deployment(deployment):
     deployment_record = save_deployment(
         deployment,
         pipeline
+    )
+
+    # ------------------------------------
+    # Start Deployment Lifecycle
+    # ------------------------------------
+
+    start_deployment_lifecycle(
+        deployment_record["deployment_id"]
     )
 
     # ------------------------------------

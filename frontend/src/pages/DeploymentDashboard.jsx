@@ -421,18 +421,34 @@ function getEnvironmentChip(environment) {
 
     filteredDeployments.map((deployment) => (
 
-      <TableRow
-        key={deployment.deployment_id}
-        hover
-        sx={{ cursor: "pointer" }}
-        onClick={() => handleRowClick(deployment)}
-      >
+  <TableRow
+    key={deployment.deployment_id}
+    hover
+    sx={{ cursor: "pointer" }}
+    onClick={() => handleRowClick(deployment)}
+  >
 
-        {/* Keep all your existing cells here */}
+    <TableCell>{deployment.deployment_id}</TableCell>
 
-      </TableRow>
+    <TableCell>{deployment.cloud}</TableCell>
 
-    ))
+    <TableCell>
+      {getEnvironmentChip(deployment.environment)}
+    </TableCell>
+
+    <TableCell>{deployment.region}</TableCell>
+
+    <TableCell>{deployment.workload}</TableCell>
+
+    <TableCell>
+      {getStatusChip(deployment.status)}
+    </TableCell>
+
+    <TableCell>{deployment.created_time}</TableCell>
+
+  </TableRow>
+
+))
 
   )}
 

@@ -3,6 +3,7 @@ from services.deployment_history import save_deployment
 from services.policy_service import validate_policy
 from services.terraform_service import execute_terraform
 from services.deployment_lifecycle import start_deployment_lifecycle
+from fastapi import HTTPException
 
 
 def process_deployment(deployment):
@@ -20,10 +21,10 @@ def process_deployment(deployment):
 
     if not policy_result["allowed"]:
 
-        return {
-            "status": "Governance Failed",
-            "policy": policy_result
-        }
+        raise HTTPException(
+    status_code=400,
+    detail=policy_result
+)
 
     deployment_plan = {}
 

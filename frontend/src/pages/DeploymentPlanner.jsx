@@ -15,12 +15,14 @@ import RegionStep from "../components/wizard/RegionStep";
 import ReviewStep from "../components/wizard/ReviewStep";
 
 import { deployLandingZone } from "../services/api";
+import InfrastructureStep from "../components/wizard/InfrastructureStep";
 
 const steps = [
   "Cloud",
   "Workload",
   "Environment",
   "Region",
+  "Infrastructure",
   "Review"
 ];
 
@@ -31,11 +33,30 @@ function DeploymentPlanner() {
   const [loading, setLoading] = useState(false);
 
   const [deploymentRequest, setDeploymentRequest] = useState({
+
     cloud: "",
+
     workload: "",
+
     environment: "",
-    region: ""
-  });
+
+    region: "",
+
+    vmSize: "",
+
+    storageType: "",
+
+    enableBackup: true,
+
+    enableMonitoring: true,
+
+    enableAvailabilityZone: true,
+
+    enablePrivateEndpoint: true,
+
+    enablePublicIP: false
+
+});
 
   const handleNext = () => {
     setActiveStep((prev) => prev + 1);
@@ -47,29 +68,71 @@ function DeploymentPlanner() {
 
   const handleProvision = async () => {
 
-    try {
+  try {
 
-      setLoading(true);
+    setLoading(true);
 
-      const response = await deployLandingZone(deploymentRequest);
+    const response = await deployLandingZone(deploymentRequest);
 
-      console.log("Backend Response:", response);
+    console.log("Backend Response:", response);
 
-      alert(response.message);
+    alert("✅ " + response.message);
 
-    } catch (error) {
+  } catch (error) {
 
-      console.error(error);
+  console.error(error);
 
-      alert("Deployment Failed");
+  if (error.response) {
 
-    } finally {
+    const report = error.response.data.detail;
 
-      setLoading(false);
+    // If backend returned a compliance report
+    if (typeof report === "object") {
+
+      let message = "";
+
+      message += "❌ GOVERNANCE COMPLIANCE REPORT\n\n";
+
+      message += `Compliance Score : ${report.compliance_score}%\n`;
+      message += `Passed Policies : ${report.passed}\n`;
+      message += `Failed Policies : ${report.failed}\n\n`;
+
+      report.results.forEach((policy) => {
+
+        if (policy.status === "PASS") {
+
+          message += `✅ ${policy.policy}\n`;
+
+        } else {
+
+          message += `❌ ${policy.policy}\n`;
+          message += `   ${policy.reason}\n`;
+
+        }
+
+      });
+
+      alert(message);
+
+    } else {
+
+      alert("❌ " + report);
 
     }
 
-  };
+  } else {
+
+    alert("❌ Unable to contact backend.");
+
+  }
+
+} finally {
+
+  setLoading(false);
+
+}
+
+};
 
   return (
 
@@ -134,11 +197,20 @@ function DeploymentPlanner() {
 
         {/* STEP 5 */}
 
-        {activeStep === 4 && (
-          <ReviewStep
-            deploymentRequest={deploymentRequest}
-          />
-        )}
+{activeStep === 4 && (
+  <InfrastructureStep
+    deploymentRequest={deploymentRequest}
+    setDeploymentRequest={setDeploymentRequest}
+  />
+)}
+
+{/* STEP 6 */}
+
+{activeStep === 5 && (
+  <ReviewStep
+    deploymentRequest={deploymentRequest}
+  />
+)}
 
         {/* Navigation */}
 

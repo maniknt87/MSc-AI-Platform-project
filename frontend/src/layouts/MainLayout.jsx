@@ -7,8 +7,9 @@ import Navbar from "../components/Navbar";
 import DeploymentPlanner from "../pages/DeploymentPlanner";
 import DeploymentDashboard from "../pages/DeploymentDashboard";
 import GovernanceCenter from "../pages/GovernanceCenter";
+import UsersRoles from "../pages/UsersRoles";
 
-function MainLayout() {
+function MainLayout({ user, onLogout }) {
 
   const [currentPage, setCurrentPage] = useState("planner");
 
@@ -19,23 +20,29 @@ function MainLayout() {
       <Navbar
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
+        user={user}
+        onLogout={onLogout}
       />
 
       <Box sx={{ p: 3 }}>
 
-        {currentPage === "planner" && (
-          <DeploymentPlanner />
-        )}
+  {currentPage === "planner" && (
+    <DeploymentPlanner />
+  )}
 
-        {currentPage === "dashboard" && (
-          <DeploymentDashboard />
-        )}
+  {currentPage === "dashboard" && (
+    <DeploymentDashboard />
+  )}
 
-        {currentPage === "governance" && (
-          <GovernanceCenter />
-        )}
+  {currentPage === "governance" && (
+    <GovernanceCenter />
+  )}
 
-      </Box>
+  {currentPage === "users" && (
+    <UsersRoles />
+  )}
+
+</Box>
 
     </Box>
 

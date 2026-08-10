@@ -7,7 +7,8 @@ from pydantic import BaseModel
 
 from services.auth_service import (
     authenticate_user,
-    create_user
+    create_user,
+    create_access_token
 )
 
 
@@ -64,8 +65,15 @@ def login(request: LoginRequest):
             detail="Invalid username or password."
         )
 
+    token = create_access_token(user)
+
     return {
         "message": "Login successful.",
+
+        "access_token": token,
+
+        "token_type": "Bearer",
+
         "user": user
     }
 
@@ -75,7 +83,9 @@ def login(request: LoginRequest):
 # ==========================================
 
 @router.post("/users")
-def register_user(request: CreateUserRequest):
+def register_user(
+    request: CreateUserRequest
+):
 
     result = create_user(
         username=request.username,

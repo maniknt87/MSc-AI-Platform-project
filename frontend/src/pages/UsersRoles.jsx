@@ -12,232 +12,651 @@ import TableRow from "@mui/material/TableRow";
 import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
 
+
 function UsersRoles() {
+
   const [users, setUsers] = useState([]);
+
   const [loading, setLoading] = useState(true);
+
   const [selectedUser, setSelectedUser] = useState(null);
+
   const [cloudRoles, setCloudRoles] = useState([]);
+
   const [rolesLoading, setRolesLoading] = useState(false);
 
+
+  // ------------------------------------------
+  // Get Current User
+  // ------------------------------------------
+
   const getCurrentUser = () => {
+
     try {
-      const storedUser = localStorage.getItem("currentUser");
-      return storedUser ? JSON.parse(storedUser) : null;
-    } catch (error) {
-      console.error("Unable to read current user:", error);
-      return null;
-    }
-  };
 
-  const currentUser = getCurrentUser();
-
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
-    try {
-      const current = getCurrentUser();
-
-      if (!current) {
-        console.error("No authenticated user found.");
-        setUsers([]);
-        return;
-      }
-
-      // Administrator sees all users.
-      if (current.role === "Administrator") {
-        const response = await fetch(
-          "http://127.0.0.1:8000/users"
+      const storedUser =
+        localStorage.getItem(
+          "currentUser"
         );
 
-        const data = await response.json();
-        setUsers(data.users);
-      } else {
-        // Other users see only themselves.
-        setUsers([
-          {
-            id: current.id,
-            username: current.username,
-            email: current.email,
-            role: current.role
-          }
-        ]);
-      }
+      return storedUser
+        ? JSON.parse(storedUser)
+        : null;
+
     } catch (error) {
-      console.error("Unable to load users:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const loadCloudRoles = async (username) => {
-    const current = getCurrentUser();
-
-    if (!current) {
-      alert("Please login again.");
-      return;
-    }
-
-    // Non-admin users can only view their own roles.
-    if (
-      current.role !== "Administrator" &&
-      username !== current.username
-    ) {
-      alert("Access denied.");
-      return;
-    }
-
-    try {
-      setRolesLoading(true);
-
-      const response = await fetch(
-        `http://127.0.0.1:8000/users/${username}/roles`
+      console.error(
+        "Unable to read current user:",
+        error
       );
 
-      const data = await response.json();
+      return null;
 
-      if (!response.ok) {
-        alert("❌ " + (data.detail || "Unable to load roles."));
-        return;
-      }
-
-      setSelectedUser(data);
-      setCloudRoles(data.cloud_roles || []);
-
-    } catch (error) {
-      console.error("Unable to load cloud roles:", error);
-    } finally {
-      setRolesLoading(false);
     }
+
   };
 
+
+  // ------------------------------------------
+  // Get Access Token
+  // ------------------------------------------
+
+  const getAccessToken = () => {
+
+    return localStorage.getItem(
+      "accessToken"
+    );
+
+  };
+
+
+  const currentUser =
+    getCurrentUser();
+
+
+  // ------------------------------------------
+  // Authorization Headers
+  // ------------------------------------------
+
+  const getAuthHeaders = () => {
+
+    const token =
+      getAccessToken();
+
+
+    if (!token) {
+
+      return null;
+
+    }
+
+
+    return {
+
+      "Authorization":
+        `Bearer ${token}`,
+
+      "Content-Type":
+        "application/json"
+
+    };
+
+  };
+
+
+  // ------------------------------------------
+  // Load Users
+  // ------------------------------------------
+
+  useEffect(() => {
+
+    loadUsers();
+
+  }, []);
+
+
+  const loadUsers = async () => {
+
+    try {
+
+      const headers =
+        getAuthHeaders();
+
+
+      if (!headers) {
+
+        alert(
+          "Your session has expired. Please login again."
+        );
+
+        return;
+
+      }
+
+
+      const response =
+        await fetch(
+          "http://127.0.0.1:8000/users",
+          {
+            method: "GET",
+
+            headers
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if (!response.ok) {
+
+        alert(
+          "❌ " +
+          (
+            data.detail ||
+            "Unable to load users."
+          )
+        );
+
+        return;
+
+      }
+
+
+      setUsers(
+        data.users || []
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "Unable to load users:",
+        error
+      );
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
+  };
+
+
+  // ------------------------------------------
+  // Load Cloud Roles
+  // ------------------------------------------
+
+  const loadCloudRoles =
+    async (username) => {
+
+      const current =
+        getCurrentUser();
+
+
+      if (!current) {
+
+        alert(
+          "Please login again."
+        );
+
+        return;
+
+      }
+
+
+      try {
+
+        setRolesLoading(true);
+
+
+        const headers =
+          getAuthHeaders();
+
+
+        if (!headers) {
+
+          alert(
+            "Your session has expired. Please login again."
+          );
+
+          return;
+
+        }
+
+
+        const response =
+          await fetch(
+            `http://127.0.0.1:8000/users/${username}/roles`,
+            {
+              method: "GET",
+
+              headers
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (!response.ok) {
+
+          alert(
+            "❌ " +
+            (
+              data.detail ||
+              "Unable to load roles."
+            )
+          );
+
+          return;
+
+        }
+
+
+        setSelectedUser(data);
+
+        setCloudRoles(
+          data.cloud_roles || []
+        );
+
+
+      } catch (error) {
+
+        console.error(
+          "Unable to load cloud roles:",
+          error
+        );
+
+      } finally {
+
+        setRolesLoading(false);
+
+      }
+
+    };
+
+
+  // ------------------------------------------
+  // Render
+  // ------------------------------------------
+
   return (
+
     <Box>
+
+      {/* ---------------------------------- */}
+      {/* Page Heading */}
+      {/* ---------------------------------- */}
+
       <Typography
         variant="h4"
+
         align="center"
+
         gutterBottom
       >
         Users & Cloud Roles
       </Typography>
 
+
       <Typography
         align="center"
-        sx={{ mb: 4 }}
+
+        sx={{
+          mb: 4
+        }}
       >
-        {currentUser?.role === "Administrator"
-          ? "Centralized view of all multi-cloud users and their assigned roles."
-          : "Your assigned multi-cloud accounts, subscriptions and roles."}
+
+        {
+          currentUser?.role ===
+          "Administrator"
+
+            ? "Centralized view of all multi-cloud users and their assigned roles."
+
+            : "Your assigned multi-cloud accounts, subscriptions and roles."
+        }
+
       </Typography>
 
-      {loading ? (
-        <Typography align="center">
-          Loading users...
-        </Typography>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell><strong>User</strong></TableCell>
-                <TableCell><strong>Email</strong></TableCell>
-                <TableCell><strong>Platform Role</strong></TableCell>
-                <TableCell><strong>Cloud Access</strong></TableCell>
-              </TableRow>
-            </TableHead>
 
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.username}</TableCell>
-                  <TableCell>{user.email}</TableCell>
+      {/* ---------------------------------- */}
+      {/* Users Table */}
+      {/* ---------------------------------- */}
+
+      {
+        loading ? (
+
+          <Typography
+            align="center"
+          >
+            Loading users...
+          </Typography>
+
+        ) : (
+
+          <TableContainer
+            component={Paper}
+          >
+
+            <Table>
+
+              <TableHead>
+
+                <TableRow>
+
                   <TableCell>
-                    <Chip label={user.role} />
+                    <strong>
+                      User
+                    </strong>
                   </TableCell>
+
+
                   <TableCell>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => loadCloudRoles(user.username)}
-                    >
-                      View Roles
-                    </Button>
+                    <strong>
+                      Email
+                    </strong>
                   </TableCell>
+
+
+                  <TableCell>
+                    <strong>
+                      Platform Role
+                    </strong>
+                  </TableCell>
+
+
+                  <TableCell>
+                    <strong>
+                      Cloud Access
+                    </strong>
+                  </TableCell>
+
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
 
-      {rolesLoading && (
-        <Typography align="center" sx={{ mt: 4 }}>
-          Loading cloud roles...
-        </Typography>
-      )}
+              </TableHead>
 
-      {selectedUser && !rolesLoading && (
-        <Paper sx={{ mt: 4, p: 3 }}>
-          <Typography variant="h5" gutterBottom>
-            User Role Details
+
+              <TableBody>
+
+                {
+                  users.map(
+                    (user) => (
+
+                      <TableRow
+                        key={user.id}
+                      >
+
+                        <TableCell>
+                          {user.username}
+                        </TableCell>
+
+
+                        <TableCell>
+                          {
+                            user.email ||
+                            "-"
+                          }
+                        </TableCell>
+
+
+                        <TableCell>
+
+                          <Chip
+                            label={
+                              user.role
+                            }
+                          />
+
+                        </TableCell>
+
+
+                        <TableCell>
+
+                          <Button
+                            variant="outlined"
+
+                            size="small"
+
+                            onClick={() =>
+                              loadCloudRoles(
+                                user.username
+                              )
+                            }
+                          >
+                            View Roles
+                          </Button>
+
+                        </TableCell>
+
+                      </TableRow>
+
+                    )
+                  )
+                }
+
+              </TableBody>
+
+            </Table>
+
+          </TableContainer>
+
+        )
+      }
+
+
+      {/* ---------------------------------- */}
+      {/* Loading Roles */}
+      {/* ---------------------------------- */}
+
+      {
+        rolesLoading && (
+
+          <Typography
+            align="center"
+
+            sx={{
+              mt: 4
+            }}
+          >
+            Loading cloud roles...
           </Typography>
 
-          <Typography sx={{ mb: 2 }}>
-            <strong>User:</strong> {selectedUser.username}
-          </Typography>
+        )
+      }
 
-          <Typography sx={{ mb: 1 }}>
-            <strong>Allowed Region:</strong>{" "}
-            {selectedUser.allowed_region || "Not specified"}
-          </Typography>
 
-          <Typography sx={{ mb: 3 }}>
-            <strong>Platform Role:</strong>{" "}
-            <Chip
-              label={selectedUser.platform_role}
-              size="small"
-            />
-          </Typography>
+      {/* ---------------------------------- */}
+      {/* Role Details */}
+      {/* ---------------------------------- */}
 
-          <Typography variant="h6" gutterBottom>
-            Cloud Access
-          </Typography>
+      {
+        selectedUser &&
+        !rolesLoading && (
 
-          {cloudRoles.map((role, index) => (
-            <Paper
-              key={index}
-              variant="outlined"
-              sx={{ p: 2, mb: 2 }}
+          <Paper
+            sx={{
+              mt: 4,
+
+              p: 3
+            }}
+          >
+
+            <Typography
+              variant="h5"
+
+              gutterBottom
             >
-              <Typography variant="h6">
-                {role.cloud}
-              </Typography>
+              User Role Details
+            </Typography>
 
-              <Typography>
-                <strong>Account / Subscription:</strong>{" "}
-                {role.account_name}
-              </Typography>
 
-              <Typography>
-                <strong>Account ID:</strong>{" "}
-                {role.account_id}
-              </Typography>
+            <Typography
+              sx={{
+                mb: 2
+              }}
+            >
 
-              <Typography>
-                <strong>Role:</strong>{" "}
-                <Chip
-                  label={role.cloud_role}
-                  size="small"
-                  sx={{ ml: 1 }}
-                />
-              </Typography>
-            </Paper>
-          ))}
-        </Paper>
-      )}
+              <strong>
+                User:
+              </strong>{" "}
+
+              {
+                selectedUser.username
+              }
+
+            </Typography>
+
+
+            <Typography
+              sx={{
+                mb: 1
+              }}
+            >
+
+              <strong>
+                Allowed Region:
+              </strong>{" "}
+
+              {
+                selectedUser.allowed_region ||
+                "Not specified"
+              }
+
+            </Typography>
+
+
+            <Typography
+              sx={{
+                mb: 3
+              }}
+            >
+
+              <strong>
+                Platform Role:
+              </strong>{" "}
+
+              <Chip
+                label={
+                  selectedUser.platform_role
+                }
+
+                size="small"
+              />
+
+            </Typography>
+
+
+            <Typography
+              variant="h6"
+
+              gutterBottom
+            >
+              Cloud Access
+            </Typography>
+
+
+            {
+              cloudRoles.length === 0 ? (
+
+                <Typography
+                  color="text.secondary"
+                >
+                  No cloud roles assigned.
+                </Typography>
+
+              ) : (
+
+                cloudRoles.map(
+                  (role, index) => (
+
+                    <Paper
+                      key={index}
+
+                      variant="outlined"
+
+                      sx={{
+                        p: 2,
+
+                        mb: 2
+                      }}
+                    >
+
+                      <Typography
+                        variant="h6"
+                      >
+                        {role.cloud}
+                      </Typography>
+
+
+                      <Typography>
+
+                        <strong>
+                          Account / Subscription:
+                        </strong>{" "}
+
+                        {
+                          role.account_name
+                        }
+
+                      </Typography>
+
+
+                      <Typography>
+
+                        <strong>
+                          Account ID:
+                        </strong>{" "}
+
+                        {
+                          role.account_id ||
+                          "-"
+                        }
+
+                      </Typography>
+
+
+                      <Typography>
+
+                        <strong>
+                          Role:
+                        </strong>{" "}
+
+                        <Chip
+                          label={
+                            role.cloud_role
+                          }
+
+                          size="small"
+
+                          sx={{
+                            ml: 1
+                          }}
+                        />
+
+                      </Typography>
+
+                    </Paper>
+
+                  )
+                )
+
+              )
+            }
+
+          </Paper>
+
+        )
+      }
+
     </Box>
+
   );
+
 }
+
 
 export default UsersRoles;

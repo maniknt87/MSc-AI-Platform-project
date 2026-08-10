@@ -7,6 +7,11 @@ import Stepper from "@mui/material/Stepper";
 import Step from "@mui/material/Step";
 import StepLabel from "@mui/material/StepLabel";
 import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Alert from "@mui/material/Alert";
 
 import CloudStep from "../components/wizard/CloudStep";
 import WorkloadStep from "../components/wizard/WorkloadStep";
@@ -31,6 +36,13 @@ function DeploymentPlanner() {
   const [activeStep, setActiveStep] = useState(0);
 
   const [loading, setLoading] = useState(false);
+
+  const [dialog, setDialog] = useState({
+    open: false,
+    title: "",
+    message: "",
+    severity: "success"
+  });
 
   const [deploymentRequest, setDeploymentRequest] = useState({
 
@@ -76,7 +88,12 @@ function DeploymentPlanner() {
 
     console.log("Backend Response:", response);
 
-    alert("✅ " + response.message);
+    setDialog({
+      open: true,
+      title: "Deployment Submitted",
+      message: response.message,
+      severity: "success"
+    });
 
   } catch (error) {
 
@@ -112,17 +129,32 @@ function DeploymentPlanner() {
 
       });
 
-      alert(message);
+      setDialog({
+        open: true,
+        title: "Governance Compliance Report",
+        message,
+        severity: report.compliance_score >= 80 ? "success" : "error"
+      });
 
     } else {
 
-      alert("❌ " + report);
+      setDialog({
+        open: true,
+        title: "Deployment Failed",
+        message: report,
+        severity: "error"
+      });
 
     }
 
   } else {
 
-    alert("❌ Unable to contact backend.");
+    setDialog({
+      open: true,
+      title: "Connection Error",
+      message: "Unable to contact backend.",
+      severity: "error"
+    });
 
   }
 
@@ -135,8 +167,56 @@ function DeploymentPlanner() {
 };
 
   return (
+    <>
+      <Dialog
+        open={dialog.open}
+        onClose={() =>
+          setDialog((prev) => ({
+            ...prev,
+            open: false
+          }))
+        }
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: 8
+          }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: "center", fontWeight: 600 }}>
+          {dialog.title}
+        </DialogTitle>
 
-    <Box sx={{ p: 4 }}>
+        <DialogContent>
+          <Alert
+            severity={dialog.severity}
+            sx={{
+              alignItems: "flex-start",
+              whiteSpace: "pre-line"
+            }}
+          >
+            {dialog.message}
+          </Alert>
+        </DialogContent>
+
+        <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
+          <Button
+            variant="contained"
+            onClick={() =>
+              setDialog((prev) => ({
+                ...prev,
+                open: false
+              }))
+            }
+          >
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Box sx={{ p: 4 }}>
 
       <Typography
         variant="h4"
@@ -255,7 +335,7 @@ function DeploymentPlanner() {
       </Paper>
 
     </Box>
-
+    </>
   );
 
 }

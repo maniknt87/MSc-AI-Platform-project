@@ -13,5 +13,5 @@ variable "environment" {
 variable "platform_name" {
   description = "Name of the multi-cloud platform"
   type        = string
-  default     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+  default     = "Multi-Cloud Governance and Landing Zone Orchestration Platform"
 }

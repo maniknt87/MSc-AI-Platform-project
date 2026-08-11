@@ -280,6 +280,67 @@ module "ai_route_table" {
   }
 }
 
+module "ai_storage_private_dns" {
+  source = "./modules/private-dns"
+
+  resource_group_name = azurerm_resource_group.connectivity.name
+
+  zone_name = "privatelink.blob.core.windows.net"
+
+  vnet_id = module.ai_spoke.vnet_id
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Workload     = "AI"
+    Architecture = "Hub-Spoke"
+    ManagedBy    = "Terraform"
+  }
+}
+
+module "ai_storage" {
+  source = "./modules/storage"
+
+  resource_group_name = azurerm_resource_group.ai.name
+  location            = azurerm_resource_group.ai.location
+
+  storage_account_name = "aigov${lower(var.environment)}01"
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Workload     = "AI"
+    Architecture = "Spoke"
+    ManagedBy    = "Terraform"
+  }
+}
+
+module "ai_storage_private_endpoint" {
+  source = "./modules/private-endpoint"
+
+  resource_group_name = azurerm_resource_group.ai.name
+  location            = azurerm_resource_group.ai.location
+
+  private_endpoint_name = "pe-ai-storage-${lower(var.environment)}"
+
+  subnet_id = module.ai_spoke.subnet_ids["PrivateEndpointSubnet"]
+
+  private_connection_resource_id = module.ai_storage.storage_account_id
+
+  subresource_names = ["blob"]
+
+  private_dns_zone_id = module.ai_storage_private_dns.zone_id
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Workload     = "AI"
+    Architecture = "Spoke"
+    ManagedBy    = "Terraform"
+  }
+}
+
+
 resource "azurerm_subnet_network_security_group_association" "general_app" {
   subnet_id                 = module.general_spoke.subnet_ids["AppSubnet"]
   network_security_group_id = module.general_app_nsg.nsg_id

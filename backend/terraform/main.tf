@@ -340,6 +340,22 @@ module "ai_storage_private_endpoint" {
   }
 }
 
+module "central_monitoring" {
+  source = "./modules/monitoring"
+
+  resource_group_name = azurerm_resource_group.connectivity.name
+  location            = azurerm_resource_group.connectivity.location
+
+  workspace_name = "law-${lower(var.environment)}"
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Architecture = "Hub"
+    ManagedBy    = "Terraform"
+  }
+}
+
 
 resource "azurerm_subnet_network_security_group_association" "general_app" {
   subnet_id                 = module.general_spoke.subnet_ids["AppSubnet"]
@@ -399,6 +415,38 @@ resource "azurerm_subnet_route_table_association" "ai" {
 resource "azurerm_subnet_route_table_association" "ai_management" {
   subnet_id      = module.ai_spoke.subnet_ids["ManagementSubnet"]
   route_table_id = module.ai_route_table.route_table_id
+}
+
+resource "azurerm_monitor_diagnostic_setting" "firewall" {
+  name                       = "diag-firewall-${lower(var.environment)}"
+  target_resource_id         = module.hub_firewall.firewall_id
+  log_analytics_workspace_id = module.central_monitoring.workspace_id
+
+  enabled_log {
+    category = "AzureFirewallApplicationRule"
+  }
+
+  enabled_log {
+    category = "AzureFirewallNetworkRule"
+  }
+
+  enabled_log {
+    category = "AzureFirewallDnsProxy"
+  }
+
+  enabled_metric {
+    category = "AllMetrics"
+  }
+}
+
+resource "azurerm_monitor_diagnostic_setting" "hub_vnet" {
+  name                       = "diag-hub-vnet-${lower(var.environment)}"
+  target_resource_id         = module.hub.vnet_id
+  log_analytics_workspace_id = module.central_monitoring.workspace_id
+
+  enabled_metric {
+    category = "AllMetrics"
+  }
 }
 
 locals {

@@ -108,32 +108,69 @@ def assign_cloud_role(request: CloudRoleRequest, current_user: dict = Depends(ge
     return {"success": True, "message": "Cloud role assigned successfully."}
 
 @router.delete("/roles")
-def remove_cloud_role(request: CloudRoleRequest, current_user: dict = Depends(get_current_user)):
+def remove_cloud_role(
+    request: CloudRoleRequest,
+    current_user: dict = Depends(get_current_user)
+):
     if current_user["role"] != "Administrator":
-        raise HTTPException(status_code=403, detail="Only administrators can remove cloud roles.")
+        raise HTTPException(
+            status_code=403,
+            detail="Only administrators can remove cloud roles."
+        )
 
     connection = get_connection()
     cursor = connection.cursor()
-    cursor.execute("SELECT id FROM users WHERE username = ?", (request.username,))
+
+    # Find the user
+    cursor.execute(
+        "SELECT id FROM users WHERE username = ?",
+        (request.username,)
+    )
     user = cursor.fetchone()
+
     if not user:
         connection.close()
-        raise HTTPException(status_code=404, detail="User not found.")
+        raise HTTPException(
+            status_code=404,
+            detail="User not found."
+        )
 
+    # Find the exact cloud-role assignment
     cursor.execute("""
-        SELECT id FROM user_cloud_roles
-        WHERE user_id = ? AND cloud = ? AND account_name = ? AND cloud_role = ?
-        ORDER BY id
-    """, (user["id"], request.cloud, request.account_name, request.cloud_role))
-    roles = cursor.fetchall()
+        SELECT id
+        FROM user_cloud_roles
+        WHERE user_id = ?
+          AND cloud = ?
+          AND account_name = ?
+          AND account_id = ?
+          AND cloud_role = ?
+    """, (
+        user["id"],
+        request.cloud,
+        request.account_name,
+        request.account_id,
+        request.cloud_role
+    ))
 
-    if len(roles) <= 1:
+    role = cursor.fetchone()
+
+    if not role:
         connection.close()
-        return {"success": True, "message": "No duplicate role found."}
+        raise HTTPException(
+            status_code=404,
+            detail="Cloud role assignment not found."
+        )
 
-    duplicate_ids = [role["id"] for role in roles[1:]]
-    placeholders = ",".join("?" for _ in duplicate_ids)
-    cursor.execute(f"DELETE FROM user_cloud_roles WHERE id IN ({placeholders})", duplicate_ids)
+    # Delete the exact assignment
+    cursor.execute(
+        "DELETE FROM user_cloud_roles WHERE id = ?",
+        (role["id"],)
+    )
+
     connection.commit()
     connection.close()
-    return {"success": True, "message": "Duplicate cloud roles removed."}
+
+    return {
+        "success": True,
+        "message": "Cloud role removed successfully."
+    }

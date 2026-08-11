@@ -593,30 +593,22 @@ function UsersRoles() {
 
 
                       <Typography>
+  <strong>
+    {role.cloud === "Azure"
+      ? "Subscription:"
+      : "Account:"}
+  </strong>{" "}
+  {role.account_name}
+</Typography>
 
-                        <strong>
-                          Account / Subscription:
-                        </strong>{" "}
-
-                        {
-                          role.account_name
-                        }
-
-                      </Typography>
-
-
-                      <Typography>
-
-                        <strong>
-                          Account ID:
-                        </strong>{" "}
-
-                        {
-                          role.account_id ||
-                          "-"
-                        }
-
-                      </Typography>
+<Typography>
+  <strong>
+    {role.cloud === "Azure"
+      ? "Subscription ID:"
+      : "Account ID:"}
+  </strong>{" "}
+  {role.account_id || "-"}
+</Typography>
 
 
                       <Typography>

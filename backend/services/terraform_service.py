@@ -56,7 +56,14 @@ def terraform_plan(deployment):
         f'-var="cloud={deployment.cloud}" '
         f'-var="workload={deployment.workload}" '
         f'-var="environment={deployment.environment}" '
-        f'-var="region={deployment.region}"'
+        f'-var="region={deployment.region}" '
+        f'-var="vmSize={deployment.vmSize}" '
+        f'-var="storageType={deployment.storageType}" '
+        f'-var="enableBackup={str(deployment.enableBackup).lower()}" '
+        f'-var="enableMonitoring={str(deployment.enableMonitoring).lower()}" '
+        f'-var="enableAvailabilityZone={str(deployment.enableAvailabilityZone).lower()}" '
+        f'-var="enablePrivateEndpoint={str(deployment.enablePrivateEndpoint).lower()}" '
+        f'-var="enablePublicIP={str(deployment.enablePublicIP).lower()}"'
     )
 
     return run_terraform_command(command)

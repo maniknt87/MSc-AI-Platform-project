@@ -1,11 +1,344 @@
 terraform {
   required_version = ">= 1.5.0"
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
 }
 
 # --------------------------------------------------
 # This is a demo configuration.
 # No cloud resources are created yet.
 # --------------------------------------------------
+resource "azurerm_resource_group" "connectivity" {
+  name     = "rg-connectivity-${lower(var.environment)}"
+  location = var.region
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Architecture = "Hub"
+    ManagedBy    = "Terraform"
+  }
+}
+
+resource "azurerm_resource_group" "general" {
+  name     = "rg-general-${lower(var.environment)}"
+  location = var.region
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Workload     = "General"
+    Architecture = "Spoke"
+    ManagedBy    = "Terraform"
+  }
+}
+
+resource "azurerm_resource_group" "ai" {
+  name     = "rg-ai-${lower(var.environment)}"
+  location = var.region
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Workload     = "AI"
+    Architecture = "Spoke"
+    ManagedBy    = "Terraform"
+  }
+}
+
+module "hub" {
+  source = "./modules/hub"
+
+  resource_group_name = azurerm_resource_group.connectivity.name
+  location            = azurerm_resource_group.connectivity.location
+  vnet_name           = "vnet-hub-${lower(var.environment)}"
+  address_space       = ["10.0.0.0/16"]
+}
+
+module "general_spoke" {
+  source = "./modules/spoke"
+
+  resource_group_name = azurerm_resource_group.general.name
+  location            = azurerm_resource_group.general.location
+
+  vnet_name     = "vnet-spoke-general-${lower(var.environment)}"
+  address_space = ["10.1.0.0/16"]
+
+  hub_vnet_id = module.hub.vnet_id
+
+  subnets = {
+    AppSubnet = {
+      address_prefix = "10.1.0.0/24"
+    }
+
+    DataSubnet = {
+      address_prefix = "10.1.1.0/24"
+    }
+
+    ManagementSubnet = {
+      address_prefix = "10.1.2.0/24"
+    }
+  }
+}
+
+module "ai_spoke" {
+  source = "./modules/spoke"
+
+  resource_group_name = azurerm_resource_group.ai.name
+  location            = azurerm_resource_group.ai.location
+
+  vnet_name     = "vnet-spoke-ai-${lower(var.environment)}"
+  address_space = ["10.2.0.0/16"]
+
+  hub_vnet_id = module.hub.vnet_id
+
+  subnets = {
+    AISubnet = {
+      address_prefix = "10.2.0.0/24"
+    }
+
+    PrivateEndpointSubnet = {
+      address_prefix = "10.2.1.0/24"
+    }
+
+    ManagementSubnet = {
+      address_prefix = "10.2.2.0/24"
+    }
+  }
+}
+
+module "general_app_nsg" {
+  source = "./modules/nsg"
+
+  resource_group_name = azurerm_resource_group.general.name
+  location            = azurerm_resource_group.general.location
+
+  nsg_name = "nsg-general-app-${lower(var.environment)}"
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Workload     = "General"
+    Architecture = "Spoke"
+    ManagedBy    = "Terraform"
+  }
+
+  rules = {
+    https_from_hub = {
+      priority                   = 100
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "443"
+      source_address_prefix      = "10.0.0.0/16"
+      destination_address_prefix = "*"
+    }
+  }
+}
+
+module "general_data_nsg" {
+  source = "./modules/nsg"
+
+  resource_group_name = azurerm_resource_group.general.name
+  location            = azurerm_resource_group.general.location
+
+  nsg_name = "nsg-general-data-${lower(var.environment)}"
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Workload     = "General"
+    Architecture = "Spoke"
+    ManagedBy    = "Terraform"
+  }
+
+  rules = {
+    sql_from_app = {
+      priority                   = 100
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "1433"
+      source_address_prefix      = "10.1.0.0/24"
+      destination_address_prefix = "*"
+    }
+  }
+}
+
+module "ai_nsg" {
+  source = "./modules/nsg"
+
+  resource_group_name = azurerm_resource_group.ai.name
+  location            = azurerm_resource_group.ai.location
+
+  nsg_name = "nsg-ai-${lower(var.environment)}"
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Workload     = "AI"
+    Architecture = "Spoke"
+    ManagedBy    = "Terraform"
+  }
+  rules = {
+    https_from_hub = {
+      priority                   = 100
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "443"
+      source_address_prefix      = "10.0.0.0/16"
+      destination_address_prefix = "*"
+    }
+  }
+}
+
+module "hub_firewall" {
+  source = "./modules/firewall"
+
+  resource_group_name = azurerm_resource_group.connectivity.name
+  location            = azurerm_resource_group.connectivity.location
+
+  firewall_name = "afw-${lower(var.environment)}"
+
+  subnet_id = module.hub.firewall_subnet_id
+
+  firewall_policy_id = module.hub_firewall_policy.policy_id
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Architecture = "Hub"
+    ManagedBy    = "Terraform"
+  }
+}
+
+module "hub_firewall_policy" {
+  source = "./modules/firewall-policy"
+
+  resource_group_name = azurerm_resource_group.connectivity.name
+  location            = azurerm_resource_group.connectivity.location
+
+  policy_name = "afwp-${lower(var.environment)}"
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Architecture = "Hub"
+    ManagedBy    = "Terraform"
+  }
+}
+
+module "general_route_table" {
+  source = "./modules/route-table"
+
+  resource_group_name = azurerm_resource_group.general.name
+  location            = azurerm_resource_group.general.location
+
+  route_table_name = "rt-general-${lower(var.environment)}"
+
+  firewall_private_ip = module.hub_firewall.private_ip_address
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Workload     = "General"
+    Architecture = "Spoke"
+    ManagedBy    = "Terraform"
+  }
+}
+
+
+module "ai_route_table" {
+  source = "./modules/route-table"
+
+  resource_group_name = azurerm_resource_group.ai.name
+  location            = azurerm_resource_group.ai.location
+
+  route_table_name = "rt-ai-${lower(var.environment)}"
+
+  firewall_private_ip = module.hub_firewall.private_ip_address
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Workload     = "AI"
+    Architecture = "Spoke"
+    ManagedBy    = "Terraform"
+  }
+}
+
+resource "azurerm_subnet_network_security_group_association" "general_app" {
+  subnet_id                 = module.general_spoke.subnet_ids["AppSubnet"]
+  network_security_group_id = module.general_app_nsg.nsg_id
+}
+
+resource "azurerm_subnet_network_security_group_association" "general_data" {
+  subnet_id                 = module.general_spoke.subnet_ids["DataSubnet"]
+  network_security_group_id = module.general_data_nsg.nsg_id
+}
+
+resource "azurerm_subnet_network_security_group_association" "ai" {
+  subnet_id                 = module.ai_spoke.subnet_ids["AISubnet"]
+  network_security_group_id = module.ai_nsg.nsg_id
+}
+
+resource "azurerm_virtual_network_peering" "hub_to_ai" {
+  name                      = "hub-to-ai-${lower(var.environment)}"
+  resource_group_name       = azurerm_resource_group.connectivity.name
+  virtual_network_name      = module.hub.vnet_name
+  remote_virtual_network_id = module.ai_spoke.vnet_id
+
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+}
+
+resource "azurerm_virtual_network_peering" "hub_to_general" {
+  name                      = "hub-to-general-${lower(var.environment)}"
+  resource_group_name       = azurerm_resource_group.connectivity.name
+  virtual_network_name      = module.hub.vnet_name
+  remote_virtual_network_id = module.general_spoke.vnet_id
+
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+}
+
+resource "azurerm_subnet_route_table_association" "general_app" {
+  subnet_id      = module.general_spoke.subnet_ids["AppSubnet"]
+  route_table_id = module.general_route_table.route_table_id
+}
+
+resource "azurerm_subnet_route_table_association" "general_data" {
+  subnet_id      = module.general_spoke.subnet_ids["DataSubnet"]
+  route_table_id = module.general_route_table.route_table_id
+}
+
+resource "azurerm_subnet_route_table_association" "general_management" {
+  subnet_id      = module.general_spoke.subnet_ids["ManagementSubnet"]
+  route_table_id = module.general_route_table.route_table_id
+}
+
+resource "azurerm_subnet_route_table_association" "ai" {
+  subnet_id      = module.ai_spoke.subnet_ids["AISubnet"]
+  route_table_id = module.ai_route_table.route_table_id
+}
+
+resource "azurerm_subnet_route_table_association" "ai_management" {
+  subnet_id      = module.ai_spoke.subnet_ids["ManagementSubnet"]
+  route_table_id = module.ai_route_table.route_table_id
+}
 
 locals {
   platform_name = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
@@ -25,4 +358,15 @@ output "version" {
 
 output "deployment_status" {
   value = local.deployment_status
+}
+output "connectivity_resource_group_name" {
+  value = azurerm_resource_group.connectivity.name
+}
+
+output "general_resource_group_name" {
+  value = azurerm_resource_group.general.name
+}
+
+output "ai_resource_group_name" {
+  value = azurerm_resource_group.ai.name
 }

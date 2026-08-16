@@ -15,24 +15,25 @@ import Alert from "@mui/material/Alert";
 
 import CloudStep from "../components/wizard/CloudStep";
 import WorkloadStep from "../components/wizard/WorkloadStep";
+import ModelStep from "../components/wizard/ModelStep";
 import EnvironmentStep from "../components/wizard/EnvironmentStep";
 import RegionStep from "../components/wizard/RegionStep";
+import InfrastructureStep from "../components/wizard/InfrastructureStep";
 import ReviewStep from "../components/wizard/ReviewStep";
 
 import { deployLandingZone } from "../services/api";
-import InfrastructureStep from "../components/wizard/InfrastructureStep";
 
 const steps = [
   "Cloud",
-  "Workload",
+  "AI Workload",
+  "Model",
   "Environment",
   "Region",
   "Infrastructure",
-  "Review"
+  "Review",
 ];
 
 function DeploymentPlanner() {
-
   const [activeStep, setActiveStep] = useState(0);
 
   const [loading, setLoading] = useState(false);
@@ -41,34 +42,24 @@ function DeploymentPlanner() {
     open: false,
     title: "",
     message: "",
-    severity: "success"
+    severity: "success",
   });
 
   const [deploymentRequest, setDeploymentRequest] = useState({
-
     cloud: "",
-
     workload: "",
-
+    modelId: "",
+    modelName: "",
     environment: "",
-
     region: "",
-
     vmSize: "",
-
     storageType: "",
-
     enableBackup: true,
-
     enableMonitoring: true,
-
     enableAvailabilityZone: true,
-
     enablePrivateEndpoint: true,
-
-    enablePublicIP: false
-
-});
+    enablePublicIP: false,
+  });
 
   const handleNext = () => {
     setActiveStep((prev) => prev + 1);
@@ -79,92 +70,71 @@ function DeploymentPlanner() {
   };
 
   const handleProvision = async () => {
+    try {
+      setLoading(true);
 
-  try {
+      const response = await deployLandingZone(deploymentRequest);
 
-    setLoading(true);
+      console.log("Backend Response:", response);
 
-    const response = await deployLandingZone(deploymentRequest);
+      setDialog({
+        open: true,
+        title: "Deployment Submitted",
+        message: response.message,
+        severity: "success",
+      });
+    } catch (error) {
+      console.error(error);
 
-    console.log("Backend Response:", response);
+      if (error.response) {
+        const report = error.response.data.detail;
 
-    setDialog({
-      open: true,
-      title: "Deployment Submitted",
-      message: response.message,
-      severity: "success"
-    });
+        // If backend returned a compliance report
+        if (typeof report === "object") {
+          let message = "";
 
-  } catch (error) {
+          message += "❌ GOVERNANCE COMPLIANCE REPORT\n\n";
 
-  console.error(error);
+          message += `Compliance Score : ${report.compliance_score}%\n`;
+          message += `Passed Policies : ${report.passed}\n`;
+          message += `Failed Policies : ${report.failed}\n\n`;
 
-  if (error.response) {
+          report.results.forEach((policy) => {
+            if (policy.status === "PASS") {
+              message += `✅ ${policy.policy}\n`;
+            } else {
+              message += `❌ ${policy.policy}\n`;
+              message += `   ${policy.reason}\n`;
+            }
+          });
 
-    const report = error.response.data.detail;
-
-    // If backend returned a compliance report
-    if (typeof report === "object") {
-
-      let message = "";
-
-      message += "❌ GOVERNANCE COMPLIANCE REPORT\n\n";
-
-      message += `Compliance Score : ${report.compliance_score}%\n`;
-      message += `Passed Policies : ${report.passed}\n`;
-      message += `Failed Policies : ${report.failed}\n\n`;
-
-      report.results.forEach((policy) => {
-
-        if (policy.status === "PASS") {
-
-          message += `✅ ${policy.policy}\n`;
-
+          setDialog({
+            open: true,
+            title: "Governance Compliance Report",
+            message,
+            severity:
+              report.compliance_score >= 80 ? "success" : "error",
+          });
         } else {
-
-          message += `❌ ${policy.policy}\n`;
-          message += `   ${policy.reason}\n`;
-
+          setDialog({
+            open: true,
+            title: "Deployment Failed",
+            message: report,
+            severity: "error",
+          });
         }
-
-      });
-
-      setDialog({
-        open: true,
-        title: "Governance Compliance Report",
-        message,
-        severity: report.compliance_score >= 80 ? "success" : "error"
-      });
-
-    } else {
-
-      setDialog({
-        open: true,
-        title: "Deployment Failed",
-        message: report,
-        severity: "error"
-      });
-
+      } else {
+        setDialog({
+          open: true,
+          title: "Connection Error",
+          message: "Unable to contact backend.",
+          severity: "error",
+        });
+      }
+    } finally {
+      setLoading(false);
     }
-
-  } else {
-
-    setDialog({
-      open: true,
-      title: "Connection Error",
-      message: "Unable to contact backend.",
-      severity: "error"
-    });
-
-  }
-
-} finally {
-
-  setLoading(false);
-
-}
-
-};
+  };
 
   return (
     <>
@@ -173,7 +143,7 @@ function DeploymentPlanner() {
         onClose={() =>
           setDialog((prev) => ({
             ...prev,
-            open: false
+            open: false,
           }))
         }
         fullWidth
@@ -181,8 +151,8 @@ function DeploymentPlanner() {
         PaperProps={{
           sx: {
             borderRadius: 2,
-            boxShadow: 8
-          }
+            boxShadow: 8,
+          },
         }}
       >
         <DialogTitle sx={{ textAlign: "center", fontWeight: 600 }}>
@@ -194,7 +164,7 @@ function DeploymentPlanner() {
             severity={dialog.severity}
             sx={{
               alignItems: "flex-start",
-              whiteSpace: "pre-line"
+              whiteSpace: "pre-line",
             }}
           >
             {dialog.message}
@@ -207,7 +177,7 @@ function DeploymentPlanner() {
             onClick={() =>
               setDialog((prev) => ({
                 ...prev,
-                open: false
+                open: false,
               }))
             }
           >
@@ -217,127 +187,127 @@ function DeploymentPlanner() {
       </Dialog>
 
       <Box sx={{ p: 4 }}>
-
-      <Typography
-        variant="h4"
-        align="center"
-        gutterBottom
-      >
-        Cloud Landing Zone Deployment Planner
-      </Typography>
-
-      <Paper sx={{ p: 4 }}>
-
-        <Stepper
-          activeStep={activeStep}
-          sx={{ mb: 5 }}
+        <Typography
+          variant="h4"
+          align="center"
+          gutterBottom
         >
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
+          Cloud Landing Zone Deployment Planner
+        </Typography>
 
-        {/* STEP 1 */}
-
-        {activeStep === 0 && (
-          <CloudStep
-            deploymentRequest={deploymentRequest}
-            setDeploymentRequest={setDeploymentRequest}
-          />
-        )}
-
-        {/* STEP 2 */}
-
-        {activeStep === 1 && (
-          <WorkloadStep
-            deploymentRequest={deploymentRequest}
-            setDeploymentRequest={setDeploymentRequest}
-          />
-        )}
-
-        {/* STEP 3 */}
-
-        {activeStep === 2 && (
-          <EnvironmentStep
-            deploymentRequest={deploymentRequest}
-            setDeploymentRequest={setDeploymentRequest}
-          />
-        )}
-
-        {/* STEP 4 */}
-
-        {activeStep === 3 && (
-          <RegionStep
-            deploymentRequest={deploymentRequest}
-            setDeploymentRequest={setDeploymentRequest}
-          />
-        )}
-
-        {/* STEP 5 */}
-
-{activeStep === 4 && (
-  <InfrastructureStep
-    deploymentRequest={deploymentRequest}
-    setDeploymentRequest={setDeploymentRequest}
-  />
-)}
-
-{/* STEP 6 */}
-
-{activeStep === 5 && (
-  <ReviewStep
-    deploymentRequest={deploymentRequest}
-  />
-)}
-
-        {/* Navigation */}
-
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            mt: 5
-          }}
-        >
-
-          <Button
-            disabled={activeStep === 0 || loading}
-            onClick={handleBack}
+        <Paper sx={{ p: 4 }}>
+          <Stepper
+            activeStep={activeStep}
+            sx={{ mb: 5 }}
           >
-            Back
-          </Button>
+            {steps.map((label) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
 
-          {activeStep === steps.length - 1 ? (
+          {/* STEP 1 - CLOUD */}
 
-            <Button
-              variant="contained"
-              onClick={handleProvision}
-              disabled={loading}
-            >
-              {loading ? "Provisioning..." : "Provision Landing Zone"}
-            </Button>
-
-          ) : (
-
-            <Button
-              variant="contained"
-              onClick={handleNext}
-            >
-              Next
-            </Button>
-
+          {activeStep === 0 && (
+            <CloudStep
+              deploymentRequest={deploymentRequest}
+              setDeploymentRequest={setDeploymentRequest}
+            />
           )}
 
-        </Box>
+          {/* STEP 2 - AI WORKLOAD */}
 
-      </Paper>
+          {activeStep === 1 && (
+            <WorkloadStep
+              deploymentRequest={deploymentRequest}
+              setDeploymentRequest={setDeploymentRequest}
+            />
+          )}
 
-    </Box>
+          {/* STEP 3 - MODEL */}
+
+          {activeStep === 2 && (
+            <ModelStep
+              deploymentRequest={deploymentRequest}
+              setDeploymentRequest={setDeploymentRequest}
+            />
+          )}
+
+          {/* STEP 4 - ENVIRONMENT */}
+
+          {activeStep === 3 && (
+            <EnvironmentStep
+              deploymentRequest={deploymentRequest}
+              setDeploymentRequest={setDeploymentRequest}
+            />
+          )}
+
+          {/* STEP 5 - REGION */}
+
+          {activeStep === 4 && (
+            <RegionStep
+              deploymentRequest={deploymentRequest}
+              setDeploymentRequest={setDeploymentRequest}
+            />
+          )}
+
+          {/* STEP 6 - INFRASTRUCTURE */}
+
+          {activeStep === 5 && (
+            <InfrastructureStep
+              deploymentRequest={deploymentRequest}
+              setDeploymentRequest={setDeploymentRequest}
+            />
+          )}
+
+          {/* STEP 7 - REVIEW */}
+
+          {activeStep === 6 && (
+            <ReviewStep
+              deploymentRequest={deploymentRequest}
+            />
+          )}
+
+          {/* NAVIGATION */}
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              mt: 5,
+            }}
+          >
+            <Button
+              disabled={activeStep === 0 || loading}
+              onClick={handleBack}
+            >
+              Back
+            </Button>
+
+            {activeStep === steps.length - 1 ? (
+              <Button
+                variant="contained"
+                onClick={handleProvision}
+                disabled={loading}
+              >
+                {loading
+                  ? "Provisioning..."
+                  : "Provision Landing Zone"}
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                onClick={handleNext}
+              >
+                Next
+              </Button>
+            )}
+          </Box>
+        </Paper>
+      </Box>
     </>
   );
-
 }
 
 export default DeploymentPlanner;

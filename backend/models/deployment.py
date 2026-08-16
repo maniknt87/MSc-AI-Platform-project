@@ -13,22 +13,48 @@ class DeploymentRequest(BaseModel):
 
     environment: str
 
-    region: str
+    # Kept temporarily for backend compatibility.
+    # Region is no longer selected in the AI Platform UI.
+    region: str = ""
 
     # ---------------------------------------
-    # Infrastructure Configuration
+    # AI Configuration
     # ---------------------------------------
 
-    vmSize: str
+    modelId: str = ""
 
-    storageType: str
+    modelName: str = ""
 
-    enableBackup: bool
+    # ---------------------------------------
+    # AI Security & Governance
+    # ---------------------------------------
 
-    enableMonitoring: bool
+    enableIdentityGovernance: bool = True
 
-    enableAvailabilityZone: bool
+    enableModelGovernance: bool = True
 
-    enablePrivateEndpoint: bool
+    # ---------------------------------------
+    # Existing Platform Controls
+    # ---------------------------------------
 
-    enablePublicIP: bool
+    enableBackup: bool = True
+
+    enableMonitoring: bool = True
+
+    enableAvailabilityZone: bool = True
+
+    enablePrivateEndpoint: bool = True
+
+    enablePublicIP: bool = False
+
+    # ---------------------------------------
+    # Legacy Infrastructure Fields
+    # ---------------------------------------
+    # Retained temporarily so the existing
+    # Landing Zone deployment path remains
+    # compatible while the AI platform is
+    # being integrated.
+
+    vmSize: str = ""
+
+    storageType: str = ""

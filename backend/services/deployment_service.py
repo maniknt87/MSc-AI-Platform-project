@@ -4,6 +4,7 @@ from services.policy_service import validate_policy
 from services.terraform_service import execute_terraform
 from services.deployment_lifecycle import start_deployment_lifecycle
 from fastapi import HTTPException
+from services.policy_service import AI_WORKLOADS
 
 
 def process_deployment(deployment):
@@ -45,7 +46,7 @@ def process_deployment(deployment):
                 "status": "Ready for Azure Deployment"
             }
 
-        elif workload == "AI":
+        elif workload in AI_WORKLOADS:
 
             deployment_plan = {
                 "cloud": cloud,
@@ -73,7 +74,7 @@ def process_deployment(deployment):
                 "status": "Ready for AWS Deployment"
             }
 
-        elif workload == "AI":
+        elif workload in AI_WORKLOADS:
 
             deployment_plan = {
                 "cloud": cloud,

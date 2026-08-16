@@ -18,10 +18,11 @@ import WorkloadStep from "../components/wizard/WorkloadStep";
 import ModelStep from "../components/wizard/ModelStep";
 import EnvironmentStep from "../components/wizard/EnvironmentStep";
 import RegionStep from "../components/wizard/RegionStep";
-import InfrastructureStep from "../components/wizard/InfrastructureStep";
 import ReviewStep from "../components/wizard/ReviewStep";
 
 import { deployLandingZone } from "../services/api";
+
+import SecurityGovernanceStep from "../components/wizard/SecurityGovernanceStep";
 
 const steps = [
   "Cloud",
@@ -29,7 +30,7 @@ const steps = [
   "Model",
   "Environment",
   "Region",
-  "Infrastructure",
+  "Security & Governance",
   "Review",
 ];
 
@@ -52,6 +53,8 @@ function DeploymentPlanner() {
     modelName: "",
     environment: "",
     region: "",
+      enableIdentityGovernance: true,
+      enableModelGovernance: true,
     vmSize: "",
     storageType: "",
     enableBackup: true,
@@ -255,10 +258,10 @@ function DeploymentPlanner() {
           {/* STEP 6 - INFRASTRUCTURE */}
 
           {activeStep === 5 && (
-            <InfrastructureStep
-              deploymentRequest={deploymentRequest}
-              setDeploymentRequest={setDeploymentRequest}
-            />
+          <SecurityGovernanceStep
+          deploymentRequest={deploymentRequest}
+          setDeploymentRequest={setDeploymentRequest}
+          />
           )}
 
           {/* STEP 7 - REVIEW */}

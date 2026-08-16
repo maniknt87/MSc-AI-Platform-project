@@ -177,7 +177,7 @@ function Login({ onLogin }) {
 
             align="center"
           >
-            Multi-Cloud Governance Platform
+            AI-Ready Multi-Cloud Landing Zone Platform
           </Typography>
 
 

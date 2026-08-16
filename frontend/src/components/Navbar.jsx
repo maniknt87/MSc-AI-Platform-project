@@ -39,9 +39,9 @@ function Navbar({
       mb: 0.5
     }}
   >
-    Multi-Cloud Governance & Landing Zone
-    <br />
-    Orchestration Platform
+    AI-Ready Multi-Cloud Landing Zone
+  <br />
+  Governance & AI Workload Orchestration Platform
   </Typography>
 
 

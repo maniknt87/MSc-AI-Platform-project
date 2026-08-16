@@ -193,7 +193,7 @@ function DeploymentPlanner() {
           align="center"
           gutterBottom
         >
-          Cloud Landing Zone Deployment Planner
+          AI Workload Deployment Planner
         </Typography>
 
         <Paper sx={{ p: 4 }}>

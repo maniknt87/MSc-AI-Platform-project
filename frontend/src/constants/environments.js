@@ -13,12 +13,6 @@ export const environments = [
     icon: "🧪"
   },
 
-  {
-    id: "staging",
-    title: "Staging",
-    description: "Pre-production validation environment",
-    icon: "📦"
-  },
 
   {
     id: "production",

@@ -17,7 +17,6 @@ import CloudStep from "../components/wizard/CloudStep";
 import WorkloadStep from "../components/wizard/WorkloadStep";
 import ModelStep from "../components/wizard/ModelStep";
 import EnvironmentStep from "../components/wizard/EnvironmentStep";
-import RegionStep from "../components/wizard/RegionStep";
 import ReviewStep from "../components/wizard/ReviewStep";
 
 import { deployLandingZone } from "../services/api";
@@ -29,7 +28,6 @@ const steps = [
   "AI Workload",
   "Model",
   "Environment",
-  "Region",
   "Security & Governance",
   "Review",
 ];
@@ -246,31 +244,22 @@ function DeploymentPlanner() {
             />
           )}
 
-          {/* STEP 5 - REGION */}
+          {/* STEP 5 - INFRASTRUCTURE */}
 
-          {activeStep === 4 && (
-            <RegionStep
-              deploymentRequest={deploymentRequest}
-              setDeploymentRequest={setDeploymentRequest}
-            />
-          )}
-
-          {/* STEP 6 - INFRASTRUCTURE */}
-
-          {activeStep === 5 && (
+         {activeStep === 4 && (
           <SecurityGovernanceStep
           deploymentRequest={deploymentRequest}
           setDeploymentRequest={setDeploymentRequest}
           />
-          )}
+            )}
 
-          {/* STEP 7 - REVIEW */}
+          {/* STEP 6 - REVIEW */}
 
-          {activeStep === 6 && (
-            <ReviewStep
-              deploymentRequest={deploymentRequest}
-            />
-          )}
+          {activeStep === 5 && (
+          <ReviewStep
+          deploymentRequest={deploymentRequest}
+          />
+            )}
 
           {/* NAVIGATION */}
 

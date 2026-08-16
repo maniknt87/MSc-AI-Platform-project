@@ -3,17 +3,17 @@ export const cloudProviders = [
     id: "azure",
     name: "Microsoft Azure",
     shortName: "Azure",
-    description: "Enterprise Landing Zone",
-    workloads: ["General", "AI"],
-    icon: "☁️"
+    description: "Azure Machine Learning",
+    workloads: ["Sentiment Analysis", "Named Entity Recognition", "Image Classification"],
+    icon: "☁️",
   },
 
   {
     id: "aws",
     name: "Amazon Web Services",
     shortName: "AWS",
-    description: "Enterprise Landing Zone",
-    workloads: ["General", "AI"],
-    icon: "🟠"
-  }
+    description: "Amazon SageMaker",
+    workloads: ["Sentiment Analysis", "Named Entity Recognition", "Image Classification"],
+    icon: "🟠",
+  },
 ];

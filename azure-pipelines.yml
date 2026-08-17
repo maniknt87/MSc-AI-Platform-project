@@ -9,10 +9,7 @@ steps:
 - checkout: self
   displayName: 'Checkout repository'
 
-- task: TerraformInstaller@1
-  displayName: 'Install Terraform'
-  inputs:
-    terraformVersion: 'latest'
+
 
 - script: |
     terraform fmt -check -recursive backend/terraform

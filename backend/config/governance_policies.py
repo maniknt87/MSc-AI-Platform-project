@@ -10,9 +10,9 @@ GOVERNANCE_POLICIES = {
 
     "Azure": {
 
-        # -------------------------------
+        # -------------------------------------------------
         # Development
-        # -------------------------------
+        # -------------------------------------------------
 
         "Development": {
 
@@ -60,13 +60,61 @@ GOVERNANCE_POLICIES = {
                 "name": "Public IP Policy",
                 "field": "enablePublicIP",
                 "allowed": True
-            }
+            },
 
+            # ---------------------------------------------
+            # AI Governance
+            # ---------------------------------------------
+
+            "ai_governance": {
+
+                "identity_governance": {
+                    "id": "AI-GOV-001",
+                    "name": "Identity & Access Governance",
+                    "required": True
+                },
+
+                "model_governance": {
+                    "id": "AI-GOV-002",
+                    "name": "AI Model Governance",
+                    "required": True
+                },
+
+                "data_protection": {
+                    "id": "AI-GOV-003",
+                    "name": "AI Data & Workload Protection",
+                    "required": False
+                },
+
+                "monitoring": {
+                    "id": "AI-GOV-004",
+                    "name": "AI Workload Monitoring",
+                    "required": False
+                },
+
+                "private_endpoint": {
+                    "id": "AI-GOV-005",
+                    "name": "AI Private Network Access",
+                    "required": False
+                },
+
+                "public_ip": {
+                    "id": "AI-GOV-006",
+                    "name": "AI Public Network Exposure",
+                    "allowed": True
+                },
+
+                "availability_zone": {
+                    "id": "AI-GOV-007",
+                    "name": "AI Availability Zone",
+                    "required": False
+                }
+            }
         },
 
-        # -------------------------------
+        # -------------------------------------------------
         # Testing
-        # -------------------------------
+        # -------------------------------------------------
 
         "Testing": {
 
@@ -114,13 +162,61 @@ GOVERNANCE_POLICIES = {
                 "name": "Public IP Policy",
                 "field": "enablePublicIP",
                 "allowed": True
-            }
+            },
 
+            # ---------------------------------------------
+            # AI Governance
+            # ---------------------------------------------
+
+            "ai_governance": {
+
+                "identity_governance": {
+                    "id": "AI-GOV-001",
+                    "name": "Identity & Access Governance",
+                    "required": True
+                },
+
+                "model_governance": {
+                    "id": "AI-GOV-002",
+                    "name": "AI Model Governance",
+                    "required": True
+                },
+
+                "data_protection": {
+                    "id": "AI-GOV-003",
+                    "name": "AI Data & Workload Protection",
+                    "required": True
+                },
+
+                "monitoring": {
+                    "id": "AI-GOV-004",
+                    "name": "AI Workload Monitoring",
+                    "required": True
+                },
+
+                "private_endpoint": {
+                    "id": "AI-GOV-005",
+                    "name": "AI Private Network Access",
+                    "required": True
+                },
+
+                "public_ip": {
+                    "id": "AI-GOV-006",
+                    "name": "AI Public Network Exposure",
+                    "allowed": True
+                },
+
+                "availability_zone": {
+                    "id": "AI-GOV-007",
+                    "name": "AI Availability Zone",
+                    "required": False
+                }
+            }
         },
 
-        # -------------------------------
+        # -------------------------------------------------
         # Production
-        # -------------------------------
+        # -------------------------------------------------
 
         "Production": {
 
@@ -168,11 +264,59 @@ GOVERNANCE_POLICIES = {
                 "name": "Public IP Policy",
                 "field": "enablePublicIP",
                 "allowed": False
+            },
+
+            # ---------------------------------------------
+            # AI Governance
+            # ---------------------------------------------
+
+            "ai_governance": {
+
+                "identity_governance": {
+                    "id": "AI-GOV-001",
+                    "name": "Identity & Access Governance",
+                    "required": True
+                },
+
+                "model_governance": {
+                    "id": "AI-GOV-002",
+                    "name": "AI Model Governance",
+                    "required": True
+                },
+
+                "data_protection": {
+                    "id": "AI-GOV-003",
+                    "name": "AI Data & Workload Protection",
+                    "required": True
+                },
+
+                "monitoring": {
+                    "id": "AI-GOV-004",
+                    "name": "AI Workload Monitoring",
+                    "required": True
+                },
+
+                "private_endpoint": {
+                    "id": "AI-GOV-005",
+                    "name": "AI Private Network Access",
+                    "required": True
+                },
+
+                "public_ip": {
+                    "id": "AI-GOV-006",
+                    "name": "AI Public Network Exposure",
+                    "allowed": False
+                },
+
+                "availability_zone": {
+                    "id": "AI-GOV-007",
+                    "name": "AI Availability Zone",
+                    "required": True
+                }
             }
-
         }
-
     },
+
 
     # =====================================================
     # AWS
@@ -180,9 +324,9 @@ GOVERNANCE_POLICIES = {
 
     "AWS": {
 
-        # -------------------------------
+        # -------------------------------------------------
         # Development
-        # -------------------------------
+        # -------------------------------------------------
 
         "Development": {
 
@@ -230,13 +374,62 @@ GOVERNANCE_POLICIES = {
                 "name": "Public IP Policy",
                 "field": "enablePublicIP",
                 "allowed": True
-            }
+            },
 
+            # ---------------------------------------------
+            # AI Governance
+            # ---------------------------------------------
+
+            "ai_governance": {
+
+                "identity_governance": {
+                    "id": "AI-GOV-001",
+                    "name": "Identity & Access Governance",
+                    "required": True
+                },
+
+                "model_governance": {
+                    "id": "AI-GOV-002",
+                    "name": "AI Model Governance",
+                    "required": True
+                },
+
+                "data_protection": {
+                    "id": "AI-GOV-003",
+                    "name": "AI Data & Workload Protection",
+                    "required": False
+                },
+
+                "monitoring": {
+                    "id": "AI-GOV-004",
+                    "name": "AI Workload Monitoring",
+                    "required": False
+                },
+
+                "private_endpoint": {
+                    "id": "AI-GOV-005",
+                    "name": "AI Private Network Access",
+                    "required": False
+                },
+
+                "public_ip": {
+                    "id": "AI-GOV-006",
+                    "name": "AI Public Network Exposure",
+                    "allowed": True
+                },
+
+                "availability_zone": {
+                    "id": "AI-GOV-007",
+                    "name": "AI Availability Zone",
+                    "required": False
+                }
+            }
         },
 
-        # -------------------------------
+
+        # -------------------------------------------------
         # Testing
-        # -------------------------------
+        # -------------------------------------------------
 
         "Testing": {
 
@@ -284,13 +477,62 @@ GOVERNANCE_POLICIES = {
                 "name": "Public IP Policy",
                 "field": "enablePublicIP",
                 "allowed": True
-            }
+            },
 
+            # ---------------------------------------------
+            # AI Governance
+            # ---------------------------------------------
+
+            "ai_governance": {
+
+                "identity_governance": {
+                    "id": "AI-GOV-001",
+                    "name": "Identity & Access Governance",
+                    "required": True
+                },
+
+                "model_governance": {
+                    "id": "AI-GOV-002",
+                    "name": "AI Model Governance",
+                    "required": True
+                },
+
+                "data_protection": {
+                    "id": "AI-GOV-003",
+                    "name": "AI Data & Workload Protection",
+                    "required": True
+                },
+
+                "monitoring": {
+                    "id": "AI-GOV-004",
+                    "name": "AI Workload Monitoring",
+                    "required": True
+                },
+
+                "private_endpoint": {
+                    "id": "AI-GOV-005",
+                    "name": "AI Private Network Access",
+                    "required": True
+                },
+
+                "public_ip": {
+                    "id": "AI-GOV-006",
+                    "name": "AI Public Network Exposure",
+                    "allowed": True
+                },
+
+                "availability_zone": {
+                    "id": "AI-GOV-007",
+                    "name": "AI Availability Zone",
+                    "required": False
+                }
+            }
         },
 
-        # -------------------------------
+
+        # -------------------------------------------------
         # Production
-        # -------------------------------
+        # -------------------------------------------------
 
         "Production": {
 
@@ -338,10 +580,56 @@ GOVERNANCE_POLICIES = {
                 "name": "Public IP Policy",
                 "field": "enablePublicIP",
                 "allowed": False
+            },
+
+            # ---------------------------------------------
+            # AI Governance
+            # ---------------------------------------------
+
+            "ai_governance": {
+
+                "identity_governance": {
+                    "id": "AI-GOV-001",
+                    "name": "Identity & Access Governance",
+                    "required": True
+                },
+
+                "model_governance": {
+                    "id": "AI-GOV-002",
+                    "name": "AI Model Governance",
+                    "required": True
+                },
+
+                "data_protection": {
+                    "id": "AI-GOV-003",
+                    "name": "AI Data & Workload Protection",
+                    "required": True
+                },
+
+                "monitoring": {
+                    "id": "AI-GOV-004",
+                    "name": "AI Workload Monitoring",
+                    "required": True
+                },
+
+                "private_endpoint": {
+                    "id": "AI-GOV-005",
+                    "name": "AI Private Network Access",
+                    "required": True
+                },
+
+                "public_ip": {
+                    "id": "AI-GOV-006",
+                    "name": "AI Public Network Exposure",
+                    "allowed": False
+                },
+
+                "availability_zone": {
+                    "id": "AI-GOV-007",
+                    "name": "AI Availability Zone",
+                    "required": True
+                }
             }
-
         }
-
     }
-
 }

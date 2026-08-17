@@ -1,11 +1,83 @@
+import threading
+
+from fastapi import HTTPException
+
 from services.azure_devops import queue_pipeline
 from services.deployment_history import save_deployment
 from services.policy_service import validate_policy
 from services.terraform_service import execute_terraform
 from services.deployment_lifecycle import start_deployment_lifecycle
-from fastapi import HTTPException
 from services.policy_service import AI_WORKLOADS
 
+
+# =====================================================
+# Background Deployment Worker
+# =====================================================
+
+def run_deployment_background(
+    deployment,
+    deployment_plan,
+):
+
+    try:
+
+        # ---------------------------------------------
+        # Queue Azure DevOps Pipeline
+        # ---------------------------------------------
+
+        pipeline = queue_pipeline(deployment)
+
+        # ---------------------------------------------
+        # Execute Terraform
+        # ---------------------------------------------
+
+        terraform_result = execute_terraform(
+            deployment
+        )
+
+        # ---------------------------------------------
+        # Save Deployment History
+        # ---------------------------------------------
+
+        deployment_record = save_deployment(
+            deployment,
+            pipeline
+        )
+
+        # ---------------------------------------------
+        # Start Deployment Lifecycle
+        # ---------------------------------------------
+
+        start_deployment_lifecycle(
+            deployment_record["deployment_id"]
+        )
+
+        print(
+            "Background deployment started successfully:",
+            deployment_record["deployment_id"]
+        )
+
+        print(
+            "Terraform result:",
+            terraform_result
+        )
+
+    except Exception as error:
+
+        # ---------------------------------------------
+        # Background errors should not terminate
+        # the FastAPI request.
+        # ---------------------------------------------
+
+        print(
+            "Background deployment error:",
+            str(error)
+        )
+
+
+# =====================================================
+# Process Deployment
+# =====================================================
 
 def process_deployment(deployment):
 
@@ -14,124 +86,221 @@ def process_deployment(deployment):
     environment = deployment.environment
     region = deployment.region
 
-    # ----------------------------------
-    # Governance Validation
-    # ----------------------------------
+    # =================================================
+    # GOVERNANCE GATE
+    # =================================================
 
-    policy_result = validate_policy(deployment)
+    policy_result = validate_policy(
+        deployment
+    )
+
+    # ---------------------------------------------
+    # Governance failure = HARD STOP
+    # ---------------------------------------------
 
     if not policy_result["allowed"]:
 
         raise HTTPException(
-    status_code=400,
-    detail=policy_result
-)
+            status_code=400,
+            detail=policy_result
+        )
+
+    # =================================================
+    # Deployment Plan
+    # =================================================
 
     deployment_plan = {}
 
-    # ------------------------------------
-    # Azure Deployment
-    # ------------------------------------
+    # =================================================
+    # Azure
+    # =================================================
 
     if cloud == "Azure":
 
+        # -----------------------------------------
+        # General Workload
+        # -----------------------------------------
+
         if workload == "General":
 
             deployment_plan = {
+
                 "cloud": cloud,
-                "pipeline": "azure-general-pipeline",
-                "terraform": "azure-general.tfvars",
-                "environment": environment,
-                "region": region,
-                "status": "Ready for Azure Deployment"
+
+                "pipeline":
+                    "azure-general-pipeline",
+
+                "terraform":
+                    "azure-general.tfvars",
+
+                "environment":
+                    environment,
+
+                "region":
+                    region,
+
+                "status":
+                    "Ready for Azure Deployment"
+
             }
+
+        # -----------------------------------------
+        # AI Workload
+        # -----------------------------------------
 
         elif workload in AI_WORKLOADS:
 
             deployment_plan = {
+
                 "cloud": cloud,
-                "pipeline": "azure-ai-pipeline",
-                "terraform": "azure-ai.tfvars",
-                "environment": environment,
-                "region": region,
-                "status": "Ready for Azure AI Deployment"
+
+                "pipeline":
+                    "azure-ai-pipeline",
+
+                "terraform":
+                    "azure-ai.tfvars",
+
+                "environment":
+                    environment,
+
+                "region":
+                    region,
+
+                "status":
+                    "Ready for Azure AI Deployment"
+
             }
 
-    # ------------------------------------
-    # AWS Deployment
-    # ------------------------------------
+    # =================================================
+    # AWS
+    # =================================================
 
     elif cloud == "AWS":
 
+        # -----------------------------------------
+        # General Workload
+        # -----------------------------------------
+
         if workload == "General":
 
             deployment_plan = {
+
                 "cloud": cloud,
-                "pipeline": "aws-general-pipeline",
-                "terraform": "aws-general.tfvars",
-                "environment": environment,
-                "region": region,
-                "status": "Ready for AWS Deployment"
+
+                "pipeline":
+                    "aws-general-pipeline",
+
+                "terraform":
+                    "aws-general.tfvars",
+
+                "environment":
+                    environment,
+
+                "region":
+                    region,
+
+                "status":
+                    "Ready for AWS Deployment"
+
             }
+
+        # -----------------------------------------
+        # AI Workload
+        # -----------------------------------------
 
         elif workload in AI_WORKLOADS:
 
             deployment_plan = {
+
                 "cloud": cloud,
-                "pipeline": "aws-ai-pipeline",
-                "terraform": "aws-ai.tfvars",
-                "environment": environment,
-                "region": region,
-                "status": "Ready for AWS AI Deployment"
+
+                "pipeline":
+                    "aws-ai-pipeline",
+
+                "terraform":
+                    "aws-ai.tfvars",
+
+                "environment":
+                    environment,
+
+                "region":
+                    region,
+
+                "status":
+                    "Ready for AWS AI Deployment"
+
             }
 
-    # ------------------------------------
+    # =================================================
     # Unsupported Deployment
-    # ------------------------------------
+    # =================================================
 
     if not deployment_plan:
 
-        return {
-            "status": "Unsupported Deployment"
-        }
+        raise HTTPException(
 
-    # ------------------------------------
-    # Queue Azure DevOps Pipeline
-    # ------------------------------------
+            status_code=400,
 
-    pipeline = queue_pipeline(deployment)
+            detail={
+                "status": "Unsupported Deployment",
+                "message":
+                    "The selected cloud and workload "
+                    "combination is not supported."
+            }
 
-    # ------------------------------------
-    # Execute Terraform
-    # ------------------------------------
+        )
 
-    terraform_result = execute_terraform(deployment)
+    # =================================================
+    # START BACKGROUND DEPLOYMENT
+    # =================================================
 
-    # ------------------------------------
-    # Save Deployment History
-    # ------------------------------------
+    deployment_thread = threading.Thread(
 
-    deployment_record = save_deployment(
-        deployment,
-        pipeline
+        target=run_deployment_background,
+
+        args=(
+            deployment,
+            deployment_plan,
+        ),
+
+        daemon=True
+
     )
 
-    # ------------------------------------
-    # Start Deployment Lifecycle
-    # ------------------------------------
+    deployment_thread.start()
 
-    start_deployment_lifecycle(
-        deployment_record["deployment_id"]
-    )
-
-    # ------------------------------------
-    # Return Complete Response
-    # ------------------------------------
+    # =================================================
+    # RETURN IMMEDIATELY
+    # =================================================
 
     return {
-        "plan": deployment_plan,
-        "policy": policy_result,
-        "pipeline": pipeline,
-        "terraform": terraform_result,
-        "deployment_record": deployment_record
+
+        "status": "QUEUED",
+
+        "message":
+            "Deployment pipeline queued successfully.",
+
+        "plan":
+            deployment_plan,
+
+        "policy":
+            policy_result,
+
+        "deployment":
+            {
+
+                "cloud":
+                    cloud,
+
+                "workload":
+                    workload,
+
+                "environment":
+                    environment,
+
+                "region":
+                    region
+
+            }
+
     }

@@ -9,6 +9,7 @@ steps:
 - checkout: self
   displayName: 'Checkout repository'
 
+
 - script: |
     set -e
 
@@ -75,3 +76,44 @@ steps:
     echo "======================================"
 
   displayName: 'Validate Azure Terraform'
+
+
+- task: AzureCLI@2
+  displayName: 'Terraform Plan - Free Azure Subscription'
+  inputs:
+    azureSubscription: 'Azure-Terraform-Free-Connection'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+
+      set -e
+
+      echo "======================================"
+      echo "Azure account information"
+      echo "======================================"
+
+      az account show \
+        --query "{SubscriptionId:id, SubscriptionName:name, TenantId:tenantId}" \
+        --output table
+
+
+      echo "======================================"
+      echo "Terraform initialization"
+      echo "======================================"
+
+      terraform -chdir=backend/terraform/azure init \
+        -backend=false \
+        -input=false
+
+
+      echo "======================================"
+      echo "Terraform plan"
+      echo "======================================"
+
+      terraform -chdir=backend/terraform/azure plan \
+        -input=false
+
+
+      echo "======================================"
+      echo "Azure Terraform plan completed"
+      echo "======================================"

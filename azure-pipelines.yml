@@ -2,55 +2,194 @@ trigger:
 - ai-platform-ui
 
 pool:
-  vmImage: ubuntu-latest
-
-steps:
-- task: TerraformInstaller@1
-  displayName: 'Install Terraform'
-  inputs:
-    terraformVersion: '1.9.8'
-
-- checkout: self
-  displayName: 'Checkout repository'
+  name: devops-lin-agent
 
 
+stages:
 
-- script: |
-    terraform fmt -check -recursive backend/terraform
-  displayName: 'Terraform format check'
+# ============================================================
+# STAGE 1 - CI VALIDATION
+# ============================================================
 
-- script: |
-    set -e
+- stage: CI_Validation
+  displayName: 'CI Validation'
 
-    echo "======================================"
-    echo "Validating AWS Terraform configuration"
-    echo "======================================"
+  jobs:
+  - job: CI_Checks
+    displayName: 'Terraform CI Checks'
 
-    terraform -chdir=backend/terraform/aws init \
-      -backend=false \
-      -input=false
+    steps:
 
-    terraform -chdir=backend/terraform/aws validate
+    - checkout: self
+      displayName: 'Checkout repository'
 
-    echo "======================================"
-    echo "AWS Terraform validation completed"
-    echo "======================================"
-  displayName: 'Validate AWS Terraform'
 
-- script: |
-    set -e
+    - script: |
+        set -e
 
-    echo "======================================"
-    echo "Validating Azure Terraform configuration"
-    echo "======================================"
+        echo "======================================"
+        echo "Terraform version"
+        echo "======================================"
 
-    terraform -chdir=backend/terraform/azure init \
-      -backend=false \
-      -input=false
+        terraform version
 
-    terraform -chdir=backend/terraform/azure validate
+      displayName: 'Check Terraform installation'
 
-    echo "======================================"
-    echo "Azure Terraform validation completed"
-    echo "======================================"
-  displayName: 'Validate Azure Terraform'
+
+    - script: |
+        set -e
+
+        echo "======================================"
+        echo "Terraform format check"
+        echo "======================================"
+
+        terraform fmt -check -recursive backend/terraform
+
+        echo "======================================"
+        echo "Terraform format check completed"
+        echo "======================================"
+
+      displayName: 'Terraform format check'
+
+
+# ============================================================
+# STAGE 2 - AWS VALIDATION
+# ============================================================
+
+- stage: AWS_Validation
+  displayName: 'AWS Terraform Validation'
+
+  dependsOn: CI_Validation
+  condition: succeeded()
+
+  jobs:
+  - job: Validate_AWS
+    displayName: 'Validate AWS Terraform'
+
+    steps:
+
+    - checkout: self
+      displayName: 'Checkout repository'
+
+
+    - script: |
+        set -e
+
+        echo "======================================"
+        echo "Validating AWS Terraform configuration"
+        echo "======================================"
+
+        terraform -chdir=backend/terraform/aws init \
+          -backend=false \
+          -input=false
+
+        terraform -chdir=backend/terraform/aws validate
+
+        echo "======================================"
+        echo "AWS Terraform validation completed"
+        echo "======================================"
+
+      displayName: 'Validate AWS Terraform'
+
+
+# ============================================================
+# STAGE 3 - AZURE VALIDATION
+# ============================================================
+
+- stage: Azure_Validation
+  displayName: 'Azure Terraform Validation'
+
+  dependsOn: AWS_Validation
+  condition: succeeded()
+
+  jobs:
+  - job: Validate_Azure
+    displayName: 'Validate Azure Terraform'
+
+    steps:
+
+    - checkout: self
+      displayName: 'Checkout repository'
+
+
+    - script: |
+        set -e
+
+        echo "======================================"
+        echo "Validating Azure Terraform configuration"
+        echo "======================================"
+
+        terraform -chdir=backend/terraform/azure init \
+          -backend=false \
+          -input=false
+
+        terraform -chdir=backend/terraform/azure validate
+
+        echo "======================================"
+        echo "Azure Terraform validation completed"
+        echo "======================================"
+
+      displayName: 'Validate Azure Terraform'
+
+
+# ============================================================
+# STAGE 4 - AZURE TERRAFORM PLAN
+# ============================================================
+
+- stage: Azure_Terraform_Plan
+  displayName: 'Azure Terraform Plan - Free Subscription'
+
+  dependsOn: Azure_Validation
+  condition: succeeded()
+
+  jobs:
+  - job: Terraform_Plan
+    displayName: 'Terraform Plan - Free Azure Subscription'
+
+    steps:
+
+    - checkout: self
+      displayName: 'Checkout repository'
+
+
+    - task: AzureCLI@2
+      displayName: 'Terraform Plan - Free Azure Subscription'
+
+      inputs:
+        azureSubscription: 'Azure-Terraform-Free-Connection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+
+        inlineScript: |
+
+          set -e
+
+          echo "======================================"
+          echo "Azure account information"
+          echo "======================================"
+
+          az account show \
+            --query "{SubscriptionId:id, SubscriptionName:name, TenantId:tenantId}" \
+            --output table
+
+
+          echo "======================================"
+          echo "Terraform initialization"
+          echo "======================================"
+
+          terraform -chdir=backend/terraform/azure init \
+            -backend=false \
+            -input=false
+
+
+          echo "======================================"
+          echo "Terraform plan"
+          echo "======================================"
+
+          terraform -chdir=backend/terraform/azure plan \
+            -input=false
+
+
+          echo "======================================"
+          echo "Azure Terraform plan completed"
+          echo "======================================"

@@ -172,6 +172,7 @@ stages:
           CONTAINER_NAME="tfstate"
           LOCATION="centralindia"
 
+
           echo "Getting Azure subscription information..."
 
           SUBSCRIPTION_ID=$(az account show \
@@ -191,9 +192,6 @@ stages:
 
           # Generate a deterministic storage account name
           # from the Azure subscription ID.
-          #
-          # This keeps the name stable between pipeline runs
-          # while reducing the chance of a global naming conflict.
 
           SUBSCRIPTION_SUFFIX=$(echo "$SUBSCRIPTION_ID" \
             | tr -d '-' \
@@ -357,12 +355,66 @@ stages:
 
 
           echo "======================================"
+          echo "Calculating Terraform state storage"
+          echo "======================================"
+
+          RESOURCE_GROUP="rg-terraform-state"
+          CONTAINER_NAME="tfstate"
+          STATE_KEY="azure-development.tfstate"
+
+          SUBSCRIPTION_ID=$(az account show \
+            --query id \
+            --output tsv)
+
+          SUBSCRIPTION_SUFFIX=$(echo "$SUBSCRIPTION_ID" \
+            | tr -d '-' \
+            | cut -c1-8)
+
+          STORAGE_ACCOUNT="tfstateai${SUBSCRIPTION_SUFFIX}"
+
+          echo "Resource Group:"
+          echo "$RESOURCE_GROUP"
+
+          echo "Storage Account:"
+          echo "$STORAGE_ACCOUNT"
+
+          echo "Container:"
+          echo "$CONTAINER_NAME"
+
+          echo "State Key:"
+          echo "$STATE_KEY"
+
+
+          echo "======================================"
+          echo "Getting storage account access key"
+          echo "======================================"
+
+          export ARM_ACCESS_KEY=$(az storage account keys list \
+            --resource-group "$RESOURCE_GROUP" \
+            --account-name "$STORAGE_ACCOUNT" \
+            --query "[0].value" \
+            --output tsv)
+
+
+          if [ -z "$ARM_ACCESS_KEY" ]; then
+            echo "ERROR: Unable to obtain storage account access key."
+            exit 1
+          fi
+
+          echo "Storage backend authentication obtained."
+
+
+          echo "======================================"
           echo "Terraform initialization"
           echo "======================================"
 
           terraform -chdir=backend/terraform/azure init \
-            -backend=false \
-            -input=false
+            -reconfigure \
+            -input=false \
+            -backend-config="resource_group_name=${RESOURCE_GROUP}" \
+            -backend-config="storage_account_name=${STORAGE_ACCOUNT}" \
+            -backend-config="container_name=${CONTAINER_NAME}" \
+            -backend-config="key=${STATE_KEY}"
 
 
           echo "======================================"

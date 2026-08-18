@@ -1,0 +1,56 @@
+trigger:
+- ai-platform-ui
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- task: TerraformInstaller@1
+  displayName: 'Install Terraform'
+  inputs:
+    terraformVersion: '1.9.8'
+
+- checkout: self
+  displayName: 'Checkout repository'
+
+
+
+- script: |
+    terraform fmt -check -recursive backend/terraform
+  displayName: 'Terraform format check'
+
+- script: |
+    set -e
+
+    echo "======================================"
+    echo "Validating AWS Terraform configuration"
+    echo "======================================"
+
+    terraform -chdir=backend/terraform/aws init \
+      -backend=false \
+      -input=false
+
+    terraform -chdir=backend/terraform/aws validate
+
+    echo "======================================"
+    echo "AWS Terraform validation completed"
+    echo "======================================"
+  displayName: 'Validate AWS Terraform'
+
+- script: |
+    set -e
+
+    echo "======================================"
+    echo "Validating Azure Terraform configuration"
+    echo "======================================"
+
+    terraform -chdir=backend/terraform/azure init \
+      -backend=false \
+      -input=false
+
+    terraform -chdir=backend/terraform/azure validate
+
+    echo "======================================"
+    echo "Azure Terraform validation completed"
+    echo "======================================"
+  displayName: 'Validate Azure Terraform'

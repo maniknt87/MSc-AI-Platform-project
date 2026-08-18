@@ -133,13 +133,196 @@ stages:
 
 
 # ============================================================
-# STAGE 4 - AZURE TERRAFORM PLAN
+# STAGE 4 - TERRAFORM STATE BOOTSTRAP
+# ============================================================
+
+- stage: Terraform_State_Bootstrap
+  displayName: 'Terraform State Bootstrap'
+
+  dependsOn: Azure_Validation
+  condition: succeeded()
+
+  jobs:
+  - job: Bootstrap_State
+    displayName: 'Create Terraform Remote State'
+
+    steps:
+
+    - checkout: self
+      displayName: 'Checkout repository'
+
+
+    - task: AzureCLI@2
+      displayName: 'Create Terraform State Storage'
+
+      inputs:
+        azureSubscription: 'Azure-Terraform-Free-Connection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+
+        inlineScript: |
+
+          set -e
+
+          echo "======================================"
+          echo "Terraform State Bootstrap"
+          echo "======================================"
+
+          RESOURCE_GROUP="rg-terraform-state"
+          CONTAINER_NAME="tfstate"
+          LOCATION="centralindia"
+
+          echo "Getting Azure subscription information..."
+
+          SUBSCRIPTION_ID=$(az account show \
+            --query id \
+            --output tsv)
+
+          SUBSCRIPTION_NAME=$(az account show \
+            --query name \
+            --output tsv)
+
+          echo "Subscription:"
+          echo "$SUBSCRIPTION_NAME"
+
+          echo "Subscription ID:"
+          echo "$SUBSCRIPTION_ID"
+
+
+          # Generate a deterministic storage account name
+          # from the Azure subscription ID.
+          #
+          # This keeps the name stable between pipeline runs
+          # while reducing the chance of a global naming conflict.
+
+          SUBSCRIPTION_SUFFIX=$(echo "$SUBSCRIPTION_ID" \
+            | tr -d '-' \
+            | cut -c1-8)
+
+          STORAGE_ACCOUNT="tfstateai${SUBSCRIPTION_SUFFIX}"
+
+          echo "Terraform state storage account:"
+          echo "$STORAGE_ACCOUNT"
+
+
+          echo "======================================"
+          echo "Checking Resource Group"
+          echo "======================================"
+
+          if az group show \
+            --name "$RESOURCE_GROUP" \
+            --output none 2>/dev/null
+          then
+
+            echo "Resource group already exists."
+
+          else
+
+            echo "Resource group does not exist."
+            echo "Creating resource group..."
+
+            az group create \
+              --name "$RESOURCE_GROUP" \
+              --location "$LOCATION"
+
+            echo "Resource group created."
+
+          fi
+
+
+          echo "======================================"
+          echo "Checking Storage Account"
+          echo "======================================"
+
+          if az storage account show \
+            --name "$STORAGE_ACCOUNT" \
+            --resource-group "$RESOURCE_GROUP" \
+            --output none 2>/dev/null
+          then
+
+            echo "Storage account already exists."
+
+          else
+
+            echo "Storage account does not exist."
+            echo "Creating storage account..."
+
+            az storage account create \
+              --name "$STORAGE_ACCOUNT" \
+              --resource-group "$RESOURCE_GROUP" \
+              --location "$LOCATION" \
+              --sku Standard_LRS \
+              --min-tls-version TLS1_2 \
+              --allow-blob-public-access false
+
+            echo "Storage account created."
+
+          fi
+
+
+          echo "======================================"
+          echo "Checking Terraform State Container"
+          echo "======================================"
+
+          STORAGE_KEY=$(az storage account keys list \
+            --resource-group "$RESOURCE_GROUP" \
+            --account-name "$STORAGE_ACCOUNT" \
+            --query "[0].value" \
+            --output tsv)
+
+
+          if az storage container show \
+            --name "$CONTAINER_NAME" \
+            --account-name "$STORAGE_ACCOUNT" \
+            --account-key "$STORAGE_KEY" \
+            --output none 2>/dev/null
+          then
+
+            echo "Terraform state container already exists."
+
+          else
+
+            echo "Terraform state container does not exist."
+            echo "Creating container..."
+
+            az storage container create \
+              --name "$CONTAINER_NAME" \
+              --account-name "$STORAGE_ACCOUNT" \
+              --account-key "$STORAGE_KEY" \
+              --public-access off
+
+            echo "Terraform state container created."
+
+          fi
+
+
+          echo "======================================"
+          echo "Terraform State Bootstrap Complete"
+          echo "======================================"
+
+          echo "Resource Group:"
+          echo "$RESOURCE_GROUP"
+
+          echo "Storage Account:"
+          echo "$STORAGE_ACCOUNT"
+
+          echo "Container:"
+          echo "$CONTAINER_NAME"
+
+          echo "Location:"
+          echo "$LOCATION"
+
+          echo "======================================"
+
+
+# ============================================================
+# STAGE 5 - AZURE TERRAFORM PLAN
 # ============================================================
 
 - stage: Azure_Terraform_Plan
   displayName: 'Azure Terraform Plan - Free Subscription'
 
-  dependsOn: Azure_Validation
+  dependsOn: Terraform_State_Bootstrap
   condition: succeeded()
 
   jobs:

@@ -2,22 +2,40 @@ trigger:
 - ai-platform-ui
 
 pool:
-  vmImage: ubuntu-latest
+  name: devops-lin-agent
 
 steps:
-- task: TerraformInstaller@1
-  displayName: 'Install Terraform'
-  inputs:
-    terraformVersion: '1.9.8'
 
 - checkout: self
   displayName: 'Checkout repository'
 
+- script: |
+    set -e
+
+    echo "======================================"
+    echo "Terraform version"
+    echo "======================================"
+
+    terraform version
+
+  displayName: 'Check Terraform installation'
 
 
 - script: |
+    set -e
+
+    echo "======================================"
+    echo "Terraform format check"
+    echo "======================================"
+
     terraform fmt -check -recursive backend/terraform
+
+    echo "======================================"
+    echo "Terraform format check completed"
+    echo "======================================"
+
   displayName: 'Terraform format check'
+
 
 - script: |
     set -e
@@ -35,7 +53,9 @@ steps:
     echo "======================================"
     echo "AWS Terraform validation completed"
     echo "======================================"
+
   displayName: 'Validate AWS Terraform'
+
 
 - script: |
     set -e
@@ -53,4 +73,5 @@ steps:
     echo "======================================"
     echo "Azure Terraform validation completed"
     echo "======================================"
+
   displayName: 'Validate Azure Terraform'

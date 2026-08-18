@@ -5,6 +5,10 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
+- task: TerraformInstaller@1
+  displayName: 'Install Terraform'
+  inputs:
+    terraformVersion: '1.9.8'
 
 - checkout: self
   displayName: 'Checkout repository'

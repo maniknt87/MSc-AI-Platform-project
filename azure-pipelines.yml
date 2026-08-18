@@ -33,6 +33,7 @@ stages:
 
       displayName: 'Check Terraform installation'
 
+
     - script: |
         set -e
 
@@ -166,6 +167,7 @@ stages:
           CONTAINER_NAME="tfstate"
           LOCATION="centralindia"
 
+
           echo "Getting Azure subscription information..."
 
           SUBSCRIPTION_ID=$(az account show \
@@ -181,6 +183,7 @@ stages:
 
           echo "Subscription ID:"
           echo "$SUBSCRIPTION_ID"
+
 
           SUBSCRIPTION_SUFFIX=$(echo "$SUBSCRIPTION_ID" \
             | tr -d '-' \
@@ -246,6 +249,7 @@ stages:
             --account-name "$STORAGE_ACCOUNT" \
             --query "[0].value" \
             --output tsv)
+
 
           if az storage container show \
             --name "$CONTAINER_NAME" \
@@ -331,6 +335,7 @@ stages:
 
           STORAGE_ACCOUNT="tfstateai${SUBSCRIPTION_SUFFIX}"
 
+
           echo "Resource Group:"
           echo "$RESOURCE_GROUP"
 
@@ -354,10 +359,12 @@ stages:
             --query "[0].value" \
             --output tsv)
 
+
           if [ -z "$ARM_ACCESS_KEY" ]; then
             echo "ERROR: Unable to obtain storage account access key."
             exit 1
           fi
+
 
           echo "Storage backend authentication obtained."
 
@@ -391,10 +398,6 @@ stages:
           ls -lh backend/terraform/azure/tfplan
 
 
-    # --------------------------------------------------------
-    # Publish exact Terraform plan as pipeline artifact
-    # --------------------------------------------------------
-
     - task: PublishPipelineArtifact@1
       displayName: 'Publish Terraform Plan'
 
@@ -402,3 +405,193 @@ stages:
         targetPath: 'backend/terraform/azure/tfplan'
         artifact: 'azure-terraform-plan'
         publishLocation: 'pipeline'
+
+
+# ============================================================
+# STAGE 6 - MANUAL DEPLOYMENT APPROVAL
+# ============================================================
+
+- stage: Deployment_Approval
+  displayName: 'Deployment Approval'
+
+  dependsOn: Azure_Terraform_Plan
+  condition: succeeded()
+
+  jobs:
+
+  - job: Wait_For_Approval
+    displayName: 'Approve Azure Infrastructure Deployment'
+
+    pool: server
+    timeoutInMinutes: '60'
+
+    steps:
+
+    - task: ManualValidation@1
+      timeoutInMinutes: 55
+
+      inputs:
+        notifyUsers: ''
+        instructions: |
+          Terraform plan has completed successfully.
+
+          Review the Terraform plan and confirm that
+          the planned changes are acceptable.
+
+          Approving this validation will allow Terraform
+          to deploy the approved plan to the FREE Azure subscription.
+
+          Approve only if you want to create the
+          Azure Landing Zone resources.
+
+        onTimeout: 'reject'
+
+# ============================================================
+# STAGE 7 - AZURE TERRAFORM APPLY
+# ============================================================
+
+- stage: Azure_Terraform_Apply
+  displayName: 'Azure Terraform Apply - Free Subscription'
+
+  dependsOn: Deployment_Approval
+  condition: succeeded()
+
+  jobs:
+
+  - job: Terraform_Apply
+    displayName: 'Apply Approved Terraform Plan'
+
+    steps:
+
+    - checkout: self
+      displayName: 'Checkout repository'
+
+
+    - task: DownloadPipelineArtifact@2
+      displayName: 'Download Approved Terraform Plan'
+
+      inputs:
+        buildType: 'current'
+        artifactName: 'azure-terraform-plan'
+        targetPath: '$(Pipeline.Workspace)/azure-terraform-plan'
+
+
+    - task: AzureCLI@2
+      displayName: 'Terraform Apply - Free Azure Subscription'
+
+      inputs:
+        azureSubscription: 'Azure-Terraform-Free-Connection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+
+        inlineScript: |
+
+          set -e
+
+          echo "======================================"
+          echo "Azure account information"
+          echo "======================================"
+
+          az account show \
+            --query "{SubscriptionId:id, SubscriptionName:name, TenantId:tenantId}" \
+            --output table
+
+
+          echo "======================================"
+          echo "Terraform backend configuration"
+          echo "======================================"
+
+          RESOURCE_GROUP="rg-terraform-state"
+          CONTAINER_NAME="tfstate"
+          STATE_KEY="azure-development.tfstate"
+
+          SUBSCRIPTION_ID=$(az account show \
+            --query id \
+            --output tsv)
+
+          SUBSCRIPTION_SUFFIX=$(echo "$SUBSCRIPTION_ID" \
+            | tr -d '-' \
+            | cut -c1-8)
+
+          STORAGE_ACCOUNT="tfstateai${SUBSCRIPTION_SUFFIX}"
+
+
+          echo "Resource Group:"
+          echo "$RESOURCE_GROUP"
+
+          echo "Storage Account:"
+          echo "$STORAGE_ACCOUNT"
+
+          echo "Container:"
+          echo "$CONTAINER_NAME"
+
+          echo "State Key:"
+          echo "$STATE_KEY"
+
+
+          echo "======================================"
+          echo "Getting storage account access key"
+          echo "======================================"
+
+          export ARM_ACCESS_KEY=$(az storage account keys list \
+            --resource-group "$RESOURCE_GROUP" \
+            --account-name "$STORAGE_ACCOUNT" \
+            --query "[0].value" \
+            --output tsv)
+
+
+          if [ -z "$ARM_ACCESS_KEY" ]; then
+            echo "ERROR: Unable to obtain storage account access key."
+            exit 1
+          fi
+
+
+          echo "======================================"
+          echo "Terraform initialization"
+          echo "======================================"
+
+          terraform -chdir=backend/terraform/azure init \
+            -reconfigure \
+            -input=false \
+            -backend-config="resource_group_name=${RESOURCE_GROUP}" \
+            -backend-config="storage_account_name=${STORAGE_ACCOUNT}" \
+            -backend-config="container_name=${CONTAINER_NAME}" \
+            -backend-config="key=${STATE_KEY}"
+
+
+          echo "======================================"
+          echo "Checking approved Terraform plan"
+          echo "======================================"
+
+          PLAN_SOURCE="$(Pipeline.Workspace)/azure-terraform-plan/tfplan"
+
+          if [ ! -f "$PLAN_SOURCE" ]; then
+            echo "ERROR: Approved Terraform plan was not found."
+            exit 1
+          fi
+
+
+          echo "Approved plan found:"
+          ls -lh "$PLAN_SOURCE"
+
+
+          echo "======================================"
+          echo "Copying approved plan"
+          echo "======================================"
+
+          cp "$PLAN_SOURCE" \
+            backend/terraform/azure/tfplan
+
+
+          echo "======================================"
+          echo "Applying approved Terraform plan"
+          echo "======================================"
+
+          terraform -chdir=backend/terraform/azure apply \
+            -input=false \
+            tfplan
+
+
+          echo "======================================"
+          echo "Terraform Apply completed"
+          echo "======================================"

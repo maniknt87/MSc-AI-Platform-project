@@ -4,116 +4,192 @@ trigger:
 pool:
   name: devops-lin-agent
 
-steps:
 
-- checkout: self
-  displayName: 'Checkout repository'
+stages:
 
+# ============================================================
+# STAGE 1 - CI VALIDATION
+# ============================================================
 
-- script: |
-    set -e
+- stage: CI_Validation
+  displayName: 'CI Validation'
 
-    echo "======================================"
-    echo "Terraform version"
-    echo "======================================"
+  jobs:
+  - job: CI_Checks
+    displayName: 'Terraform CI Checks'
 
-    terraform version
+    steps:
 
-  displayName: 'Check Terraform installation'
-
-
-- script: |
-    set -e
-
-    echo "======================================"
-    echo "Terraform format check"
-    echo "======================================"
-
-    terraform fmt -check -recursive backend/terraform
-
-    echo "======================================"
-    echo "Terraform format check completed"
-    echo "======================================"
-
-  displayName: 'Terraform format check'
+    - checkout: self
+      displayName: 'Checkout repository'
 
 
-- script: |
-    set -e
+    - script: |
+        set -e
 
-    echo "======================================"
-    echo "Validating AWS Terraform configuration"
-    echo "======================================"
+        echo "======================================"
+        echo "Terraform version"
+        echo "======================================"
 
-    terraform -chdir=backend/terraform/aws init \
-      -backend=false \
-      -input=false
+        terraform version
 
-    terraform -chdir=backend/terraform/aws validate
-
-    echo "======================================"
-    echo "AWS Terraform validation completed"
-    echo "======================================"
-
-  displayName: 'Validate AWS Terraform'
+      displayName: 'Check Terraform installation'
 
 
-- script: |
-    set -e
+    - script: |
+        set -e
 
-    echo "======================================"
-    echo "Validating Azure Terraform configuration"
-    echo "======================================"
+        echo "======================================"
+        echo "Terraform format check"
+        echo "======================================"
 
-    terraform -chdir=backend/terraform/azure init \
-      -backend=false \
-      -input=false
+        terraform fmt -check -recursive backend/terraform
 
-    terraform -chdir=backend/terraform/azure validate
+        echo "======================================"
+        echo "Terraform format check completed"
+        echo "======================================"
 
-    echo "======================================"
-    echo "Azure Terraform validation completed"
-    echo "======================================"
-
-  displayName: 'Validate Azure Terraform'
+      displayName: 'Terraform format check'
 
 
-- task: AzureCLI@2
-  displayName: 'Terraform Plan - Free Azure Subscription'
-  inputs:
-    azureSubscription: 'Azure-Terraform-Free-Connection'
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
+# ============================================================
+# STAGE 2 - AWS VALIDATION
+# ============================================================
 
-      set -e
+- stage: AWS_Validation
+  displayName: 'AWS Terraform Validation'
 
-      echo "======================================"
-      echo "Azure account information"
-      echo "======================================"
+  dependsOn: CI_Validation
+  condition: succeeded()
 
-      az account show \
-        --query "{SubscriptionId:id, SubscriptionName:name, TenantId:tenantId}" \
-        --output table
+  jobs:
+  - job: Validate_AWS
+    displayName: 'Validate AWS Terraform'
 
+    steps:
 
-      echo "======================================"
-      echo "Terraform initialization"
-      echo "======================================"
-
-      terraform -chdir=backend/terraform/azure init \
-        -backend=false \
-        -input=false
+    - checkout: self
+      displayName: 'Checkout repository'
 
 
-      echo "======================================"
-      echo "Terraform plan"
-      echo "======================================"
+    - script: |
+        set -e
 
-      terraform -chdir=backend/terraform/azure plan \
-        -input=false
+        echo "======================================"
+        echo "Validating AWS Terraform configuration"
+        echo "======================================"
+
+        terraform -chdir=backend/terraform/aws init \
+          -backend=false \
+          -input=false
+
+        terraform -chdir=backend/terraform/aws validate
+
+        echo "======================================"
+        echo "AWS Terraform validation completed"
+        echo "======================================"
+
+      displayName: 'Validate AWS Terraform'
 
 
-      echo "======================================"
-      echo "Azure Terraform plan completed"
-      echo "======================================"
+# ============================================================
+# STAGE 3 - AZURE VALIDATION
+# ============================================================
+
+- stage: Azure_Validation
+  displayName: 'Azure Terraform Validation'
+
+  dependsOn: AWS_Validation
+  condition: succeeded()
+
+  jobs:
+  - job: Validate_Azure
+    displayName: 'Validate Azure Terraform'
+
+    steps:
+
+    - checkout: self
+      displayName: 'Checkout repository'
+
+
+    - script: |
+        set -e
+
+        echo "======================================"
+        echo "Validating Azure Terraform configuration"
+        echo "======================================"
+
+        terraform -chdir=backend/terraform/azure init \
+          -backend=false \
+          -input=false
+
+        terraform -chdir=backend/terraform/azure validate
+
+        echo "======================================"
+        echo "Azure Terraform validation completed"
+        echo "======================================"
+
+      displayName: 'Validate Azure Terraform'
+
+
+# ============================================================
+# STAGE 4 - AZURE TERRAFORM PLAN
+# ============================================================
+
+- stage: Azure_Terraform_Plan
+  displayName: 'Azure Terraform Plan - Free Subscription'
+
+  dependsOn: Azure_Validation
+  condition: succeeded()
+
+  jobs:
+  - job: Terraform_Plan
+    displayName: 'Terraform Plan - Free Azure Subscription'
+
+    steps:
+
+    - checkout: self
+      displayName: 'Checkout repository'
+
+
+    - task: AzureCLI@2
+      displayName: 'Terraform Plan - Free Azure Subscription'
+
+      inputs:
+        azureSubscription: 'Azure-Terraform-Free-Connection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+
+        inlineScript: |
+
+          set -e
+
+          echo "======================================"
+          echo "Azure account information"
+          echo "======================================"
+
+          az account show \
+            --query "{SubscriptionId:id, SubscriptionName:name, TenantId:tenantId}" \
+            --output table
+
+
+          echo "======================================"
+          echo "Terraform initialization"
+          echo "======================================"
+
+          terraform -chdir=backend/terraform/azure init \
+            -backend=false \
+            -input=false
+
+
+          echo "======================================"
+          echo "Terraform plan"
+          echo "======================================"
+
+          terraform -chdir=backend/terraform/azure plan \
+            -input=false
+
+
+          echo "======================================"
+          echo "Azure Terraform plan completed"
+          echo "======================================"

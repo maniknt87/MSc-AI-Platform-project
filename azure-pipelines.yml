@@ -4,7 +4,6 @@ trigger:
 pool:
   name: devops-lin-agent
 
-
 stages:
 
 # ============================================================
@@ -23,7 +22,6 @@ stages:
     - checkout: self
       displayName: 'Checkout repository'
 
-
     - script: |
         set -e
 
@@ -34,7 +32,6 @@ stages:
         terraform version
 
       displayName: 'Check Terraform installation'
-
 
     - script: |
         set -e
@@ -70,7 +67,6 @@ stages:
 
     - checkout: self
       displayName: 'Checkout repository'
-
 
     - script: |
         set -e
@@ -111,7 +107,6 @@ stages:
     - checkout: self
       displayName: 'Checkout repository'
 
-
     - script: |
         set -e
 
@@ -151,7 +146,6 @@ stages:
     - checkout: self
       displayName: 'Checkout repository'
 
-
     - task: AzureCLI@2
       displayName: 'Create Terraform State Storage'
 
@@ -172,7 +166,6 @@ stages:
           CONTAINER_NAME="tfstate"
           LOCATION="centralindia"
 
-
           echo "Getting Azure subscription information..."
 
           SUBSCRIPTION_ID=$(az account show \
@@ -188,10 +181,6 @@ stages:
 
           echo "Subscription ID:"
           echo "$SUBSCRIPTION_ID"
-
-
-          # Generate a deterministic storage account name
-          # from the Azure subscription ID.
 
           SUBSCRIPTION_SUFFIX=$(echo "$SUBSCRIPTION_ID" \
             | tr -d '-' \
@@ -211,12 +200,8 @@ stages:
             --name "$RESOURCE_GROUP" \
             --output none 2>/dev/null
           then
-
             echo "Resource group already exists."
-
           else
-
-            echo "Resource group does not exist."
             echo "Creating resource group..."
 
             az group create \
@@ -224,7 +209,6 @@ stages:
               --location "$LOCATION"
 
             echo "Resource group created."
-
           fi
 
 
@@ -237,12 +221,8 @@ stages:
             --resource-group "$RESOURCE_GROUP" \
             --output none 2>/dev/null
           then
-
             echo "Storage account already exists."
-
           else
-
-            echo "Storage account does not exist."
             echo "Creating storage account..."
 
             az storage account create \
@@ -254,7 +234,6 @@ stages:
               --allow-blob-public-access false
 
             echo "Storage account created."
-
           fi
 
 
@@ -268,20 +247,15 @@ stages:
             --query "[0].value" \
             --output tsv)
 
-
           if az storage container show \
             --name "$CONTAINER_NAME" \
             --account-name "$STORAGE_ACCOUNT" \
             --account-key "$STORAGE_KEY" \
             --output none 2>/dev/null
           then
-
             echo "Terraform state container already exists."
-
           else
-
-            echo "Terraform state container does not exist."
-            echo "Creating container..."
+            echo "Creating Terraform state container..."
 
             az storage container create \
               --name "$CONTAINER_NAME" \
@@ -290,26 +264,11 @@ stages:
               --public-access off
 
             echo "Terraform state container created."
-
           fi
 
 
           echo "======================================"
           echo "Terraform State Bootstrap Complete"
-          echo "======================================"
-
-          echo "Resource Group:"
-          echo "$RESOURCE_GROUP"
-
-          echo "Storage Account:"
-          echo "$STORAGE_ACCOUNT"
-
-          echo "Container:"
-          echo "$CONTAINER_NAME"
-
-          echo "Location:"
-          echo "$LOCATION"
-
           echo "======================================"
 
 
@@ -355,7 +314,7 @@ stages:
 
 
           echo "======================================"
-          echo "Calculating Terraform state storage"
+          echo "Terraform backend configuration"
           echo "======================================"
 
           RESOURCE_GROUP="rg-terraform-state"
@@ -395,7 +354,6 @@ stages:
             --query "[0].value" \
             --output tsv)
 
-
           if [ -z "$ARM_ACCESS_KEY" ]; then
             echo "ERROR: Unable to obtain storage account access key."
             exit 1
@@ -418,13 +376,29 @@ stages:
 
 
           echo "======================================"
-          echo "Terraform plan"
+          echo "Terraform Plan"
           echo "======================================"
 
           terraform -chdir=backend/terraform/azure plan \
-            -input=false
+            -input=false \
+            -out=tfplan
 
 
           echo "======================================"
-          echo "Azure Terraform plan completed"
+          echo "Terraform plan generated"
           echo "======================================"
+
+          ls -lh backend/terraform/azure/tfplan
+
+
+    # --------------------------------------------------------
+    # Publish exact Terraform plan as pipeline artifact
+    # --------------------------------------------------------
+
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish Terraform Plan'
+
+      inputs:
+        targetPath: 'backend/terraform/azure/tfplan'
+        artifact: 'azure-terraform-plan'
+        publishLocation: 'pipeline'

@@ -272,7 +272,128 @@ stages:
           echo "Terraform State Bootstrap Complete"
           echo "======================================"
 
+# ============================================================
+# TEMPORARY CLEANUP - TERRAFORM DESTROY
+# ============================================================
 
+- stage: Azure_Terraform_Destroy
+  displayName: 'TEMP - Azure Terraform Destroy'
+
+  dependsOn: Terraform_State_Bootstrap
+  condition: succeeded()
+
+  jobs:
+  - job: Terraform_Destroy
+    displayName: 'Destroy Azure Terraform Infrastructure'
+
+    steps:
+
+    - checkout: self
+      displayName: 'Checkout repository'
+
+
+    - task: AzureCLI@2
+      displayName: 'Terraform Destroy - Free Azure Subscription'
+
+      inputs:
+        azureSubscription: 'Azure-Terraform-Free-Connection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+
+        inlineScript: |
+
+          set -e
+
+          echo "======================================"
+          echo "WARNING - TERRAFORM DESTROY"
+          echo "======================================"
+
+          az account show \
+            --query "{SubscriptionId:id, SubscriptionName:name, TenantId:tenantId}" \
+            --output table
+
+
+          echo "======================================"
+          echo "Terraform backend configuration"
+          echo "======================================"
+
+          RESOURCE_GROUP="rg-terraform-state"
+          CONTAINER_NAME="tfstate"
+          STATE_KEY="azure-development.tfstate"
+
+          SUBSCRIPTION_ID=$(az account show \
+            --query id \
+            --output tsv)
+
+          SUBSCRIPTION_SUFFIX=$(echo "$SUBSCRIPTION_ID" \
+            | tr -d '-' \
+            | cut -c1-8)
+
+          STORAGE_ACCOUNT="tfstateai${SUBSCRIPTION_SUFFIX}"
+
+
+          echo "Resource Group:"
+          echo "$RESOURCE_GROUP"
+
+          echo "Storage Account:"
+          echo "$STORAGE_ACCOUNT"
+
+          echo "Container:"
+          echo "$CONTAINER_NAME"
+
+          echo "State Key:"
+          echo "$STATE_KEY"
+
+
+          echo "======================================"
+          echo "Getting storage account access key"
+          echo "======================================"
+
+          export ARM_ACCESS_KEY=$(az storage account keys list \
+            --resource-group "$RESOURCE_GROUP" \
+            --account-name "$STORAGE_ACCOUNT" \
+            --query "[0].value" \
+            --output tsv)
+
+
+          if [ -z "$ARM_ACCESS_KEY" ]; then
+            echo "ERROR: Unable to obtain storage account access key."
+            exit 1
+          fi
+
+
+          echo "======================================"
+          echo "Terraform initialization"
+          echo "======================================"
+
+          terraform -chdir=backend/terraform/azure init \
+            -reconfigure \
+            -input=false \
+            -backend-config="resource_group_name=${RESOURCE_GROUP}" \
+            -backend-config="storage_account_name=${STORAGE_ACCOUNT}" \
+            -backend-config="container_name=${CONTAINER_NAME}" \
+            -backend-config="key=${STATE_KEY}"
+
+
+          echo "======================================"
+          echo "Terraform state"
+          echo "======================================"
+
+          terraform -chdir=backend/terraform/azure state list
+
+
+          echo "======================================"
+          echo "TERRAFORM DESTROY STARTING"
+          echo "======================================"
+
+          terraform -chdir=backend/terraform/azure destroy \
+            -input=false \
+            -auto-approve
+
+
+          echo "======================================"
+          echo "Terraform Destroy completed"
+          echo "======================================"
 # ============================================================
 # STAGE 5 - AZURE TERRAFORM PLAN
 # ============================================================

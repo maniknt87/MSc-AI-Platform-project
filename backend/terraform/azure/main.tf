@@ -358,6 +358,36 @@ module "central_monitoring" {
 }
 
 
+module "ai_ml" {
+  source = "./modules/ai-ml"
+
+  resource_group_name = azurerm_resource_group.ai.name
+  location            = azurerm_resource_group.ai.location
+
+  workspace_name = "aml-${lower(var.environment)}"
+
+  storage_account_id = module.ai_storage.storage_account_id
+
+  key_vault_name            = "kv-ai-${lower(var.environment)}"
+  application_insights_name = "appi-ai-${lower(var.environment)}"
+
+  private_endpoint_subnet_id = module.ai_spoke.subnet_ids["PrivateEndpointSubnet"]
+
+  ai_vnet_id = module.ai_spoke.vnet_id
+
+  log_analytics_workspace_id = module.central_monitoring.workspace_id
+
+  acr_name = "acrai${lower(var.environment)}4bb8b779"
+
+  tags = {
+    Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"
+    Environment  = var.environment
+    Workload     = "AI"
+    Architecture = "Spoke"
+    ManagedBy    = "Terraform"
+  }
+}
+
 resource "azurerm_subnet_network_security_group_association" "general_app" {
   subnet_id                 = module.general_spoke.subnet_ids["AppSubnet"]
   network_security_group_id = module.general_app_nsg.nsg_id

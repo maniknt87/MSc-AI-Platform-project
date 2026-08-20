@@ -160,7 +160,7 @@ stages:
       displayName: 'Create Terraform State Storage'
 
       inputs:
-        azureSubscription: 'Azure-Terraform-Free-Connection'
+        azureSubscription: 'Azure-Terraform-Free-WIF'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
 
@@ -175,8 +175,6 @@ stages:
           RESOURCE_GROUP="rg-terraform-state"
           CONTAINER_NAME="tfstate"
           LOCATION="centralindia"
-
-          echo "Getting Azure subscription information..."
 
           SUBSCRIPTION_ID=$(az account show \
             --query id \
@@ -251,16 +249,10 @@ stages:
           echo "Checking Terraform State Container"
           echo "======================================"
 
-          STORAGE_KEY=$(az storage account keys list \
-            --resource-group "$RESOURCE_GROUP" \
-            --account-name "$STORAGE_ACCOUNT" \
-            --query "[0].value" \
-            --output tsv)
-
           if az storage container show \
             --name "$CONTAINER_NAME" \
             --account-name "$STORAGE_ACCOUNT" \
-            --account-key "$STORAGE_KEY" \
+            --auth-mode login \
             --output none 2>/dev/null
           then
             echo "Terraform state container already exists."
@@ -270,7 +262,7 @@ stages:
             az storage container create \
               --name "$CONTAINER_NAME" \
               --account-name "$STORAGE_ACCOUNT" \
-              --account-key "$STORAGE_KEY" \
+              --auth-mode login \
               --public-access off
 
             echo "Terraform state container created."
@@ -305,7 +297,7 @@ stages:
       displayName: 'Terraform Plan - Free Azure Subscription'
 
       inputs:
-        azureSubscription: 'Azure-Terraform-Free-Connection'
+        azureSubscription: 'Azure-Terraform-Free-WIF'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
 
@@ -325,6 +317,9 @@ stages:
           echo "======================================"
           echo "Terraform backend configuration"
           echo "======================================"
+
+          export ARM_USE_AZUREAD=true
+          export ARM_USE_CLI=true
 
           RESOURCE_GROUP="rg-terraform-state"
           CONTAINER_NAME="tfstate"
@@ -351,24 +346,6 @@ stages:
 
           echo "State Key:"
           echo "$STATE_KEY"
-
-
-          echo "======================================"
-          echo "Getting storage account access key"
-          echo "======================================"
-
-          export ARM_ACCESS_KEY=$(az storage account keys list \
-            --resource-group "$RESOURCE_GROUP" \
-            --account-name "$STORAGE_ACCOUNT" \
-            --query "[0].value" \
-            --output tsv)
-
-          if [ -z "$ARM_ACCESS_KEY" ]; then
-            echo "ERROR: Unable to obtain storage account access key."
-            exit 1
-          fi
-
-          echo "Storage backend authentication obtained."
 
 
           echo "======================================"
@@ -442,7 +419,7 @@ stages:
       displayName: 'Terraform Apply - Free Azure Subscription'
 
       inputs:
-        azureSubscription: 'Azure-Terraform-Free-Connection'
+        azureSubscription: 'Azure-Terraform-Free-WIF'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
 
@@ -462,6 +439,9 @@ stages:
           echo "======================================"
           echo "Terraform backend configuration"
           echo "======================================"
+
+          export ARM_USE_AZUREAD=true
+          export ARM_USE_CLI=true
 
           RESOURCE_GROUP="rg-terraform-state"
           CONTAINER_NAME="tfstate"
@@ -488,22 +468,6 @@ stages:
 
           echo "State Key:"
           echo "$STATE_KEY"
-
-
-          echo "======================================"
-          echo "Getting storage account access key"
-          echo "======================================"
-
-          export ARM_ACCESS_KEY=$(az storage account keys list \
-            --resource-group "$RESOURCE_GROUP" \
-            --account-name "$STORAGE_ACCOUNT" \
-            --query "[0].value" \
-            --output tsv)
-
-          if [ -z "$ARM_ACCESS_KEY" ]; then
-            echo "ERROR: Unable to obtain storage account access key."
-            exit 1
-          fi
 
 
           echo "======================================"
@@ -555,6 +519,7 @@ stages:
           echo "Terraform Apply completed successfully"
           echo "======================================"
 
+
 # ============================================================
 # STAGE 7 - TEMPORARY AZURE TERRAFORM DESTROY
 # ============================================================
@@ -576,8 +541,9 @@ stages:
 
     - task: AzureCLI@2
       displayName: 'Terraform Destroy - Azure Landing Zone'
+
       inputs:
-        azureSubscription: 'Azure-Terraform-Free-Connection'
+        azureSubscription: 'Azure-Terraform-Free-WIF'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
 
@@ -593,9 +559,13 @@ stages:
             --query "{SubscriptionId:id, SubscriptionName:name, TenantId:tenantId}" \
             --output table
 
+
           echo "======================================"
           echo "Terraform backend configuration"
           echo "======================================"
+
+          export ARM_USE_AZUREAD=true
+          export ARM_USE_CLI=true
 
           RESOURCE_GROUP="rg-terraform-state"
           CONTAINER_NAME="tfstate"
@@ -616,20 +586,6 @@ stages:
           echo "Container: $CONTAINER_NAME"
           echo "State Key: $STATE_KEY"
 
-          echo "======================================"
-          echo "Getting storage account access key"
-          echo "======================================"
-
-          export ARM_ACCESS_KEY=$(az storage account keys list \
-            --resource-group "$RESOURCE_GROUP" \
-            --account-name "$STORAGE_ACCOUNT" \
-            --query "[0].value" \
-            --output tsv)
-
-          if [ -z "$ARM_ACCESS_KEY" ]; then
-            echo "ERROR: Unable to obtain storage account access key."
-            exit 1
-          fi
 
           echo "======================================"
           echo "Terraform initialization"
@@ -643,11 +599,13 @@ stages:
             -backend-config="container_name=${CONTAINER_NAME}" \
             -backend-config="key=${STATE_KEY}"
 
+
           echo "======================================"
           echo "Terraform state"
           echo "======================================"
 
           terraform -chdir=backend/terraform/azure state list
+
 
           echo "======================================"
           echo "DESTROYING AZURE LANDING ZONE"
@@ -656,6 +614,7 @@ stages:
           terraform -chdir=backend/terraform/azure destroy \
             -input=false \
             -auto-approve
+
 
           echo "======================================"
           echo "Azure Terraform Destroy completed"

@@ -543,7 +543,7 @@ stages:
       displayName: 'Terraform Destroy - Azure Landing Zone'
 
       inputs:
-        azureSubscription: 'Azure-Terraform-Free-WIF'
+        azureSubscription: 'Azure-Terraform-Free-Connection'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
 

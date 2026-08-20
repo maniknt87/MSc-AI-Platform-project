@@ -519,9 +519,93 @@ stages:
           echo "Terraform Apply completed successfully"
           echo "======================================"
 
+# ============================================================
+# STAGE 7 - AZURE AI MODEL DEPLOYMENT
+# ============================================================
+
+- stage: Azure_AI_Model_Deployment
+  displayName: 'Azure AI Model Deployment'
+
+  dependsOn: Azure_Terraform_Apply
+  condition: and(succeeded(), eq('${{ parameters.action }}', 'apply'))
+
+  jobs:
+  - job: Deploy_Sentiment_Model
+    displayName: 'Deploy Sentiment Analysis Model'
+
+    steps:
+
+    - checkout: self
+      displayName: 'Checkout repository'
+
+
+    - task: AzureCLI@2
+      displayName: 'Deploy Sentiment Model to Azure ML'
+
+      inputs:
+        azureSubscription: 'Azure-Terraform-Free-Connection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+
+        inlineScript: |
+
+          set -e
+
+          echo "======================================"
+          echo "Azure AI Model Deployment"
+          echo "======================================"
+
+          az account show \
+            --query "{SubscriptionId:id, SubscriptionName:name, TenantId:tenantId}" \
+            --output table
+
+
+          echo "======================================"
+          echo "Python environment"
+          echo "======================================"
+
+          python --version
+
+          python -m pip install \
+            azure-ai-ml \
+            azure-identity
+
+
+          echo "======================================"
+          echo "Azure ML configuration"
+          echo "======================================"
+
+          export AZURE_SUBSCRIPTION_ID=$(az account show \
+            --query id \
+            --output tsv)
+
+          export AZURE_RESOURCE_GROUP="rg-ai-development"
+
+          export AZURE_ML_WORKSPACE="aml-development"
+
+          echo "Subscription:"
+          echo "$AZURE_SUBSCRIPTION_ID"
+
+          echo "Resource Group:"
+          echo "$AZURE_RESOURCE_GROUP"
+
+          echo "Workspace:"
+          echo "$AZURE_ML_WORKSPACE"
+
+
+          echo "======================================"
+          echo "Deploying Sentiment Analysis Model"
+          echo "======================================"
+
+          python backend/ml/deploy_sentiment.py
+
+
+          echo "======================================"
+          echo "Sentiment model deployment completed"
+          echo "======================================"
 
 # ============================================================
-# STAGE 7 - TEMPORARY AZURE TERRAFORM DESTROY
+# STAGE 8 - TEMPORARY AZURE TERRAFORM DESTROY
 # ============================================================
 
 - stage: Azure_Terraform_Destroy

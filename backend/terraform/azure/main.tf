@@ -13,6 +13,7 @@ provider "azurerm" {
   features {}
 }
 
+data "azurerm_client_config" "current" {}
 # --------------------------------------------------
 # This is a demo configuration.
 # No cloud resources are created yet.
@@ -304,7 +305,7 @@ module "ai_storage" {
   resource_group_name = azurerm_resource_group.ai.name
   location            = azurerm_resource_group.ai.location
 
-  storage_account_name = "aigov${lower(var.environment)}01"
+  storage_account_name = "aigov${lower(var.environment)}${substr(replace(data.azurerm_client_config.current.subscription_id, "-", ""), 0, 8)}"
 
   tags = {
     Platform     = "Multi-Cloud Governance & Landing Zone Orchestration Platform"

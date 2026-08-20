@@ -1,0 +1,48 @@
+trigger:
+- ai-platform-ui
+
+pool:
+  name: devops-lin-agent
+
+variables:
+  terraformWorkingDirectory: 'backend/terraform/aws'
+
+steps:
+
+- checkout: self
+  displayName: 'Checkout repository'
+
+- task: TerraformInstaller@1
+  displayName: 'Install Terraform'
+  inputs:
+    terraformVersion: 'latest'
+
+- task: AWSShellScript@1
+  displayName: 'Terraform Init'
+  inputs:
+    awsCredentials: 'AWS-Terraform-Connection'
+    regionName: 'ap-south-1'
+    scriptType: 'inline'
+    inlineScript: |
+      cd $(terraformWorkingDirectory)
+      terraform init
+
+- task: AWSShellScript@1
+  displayName: 'Terraform Validate'
+  inputs:
+    awsCredentials: 'AWS-Terraform-Connection'
+    regionName: 'ap-south-1'
+    scriptType: 'inline'
+    inlineScript: |
+      cd $(terraformWorkingDirectory)
+      terraform validate
+
+- task: AWSShellScript@1
+  displayName: 'Terraform Plan'
+  inputs:
+    awsCredentials: 'AWS-Terraform-Connection'
+    regionName: 'ap-south-1'
+    scriptType: 'inline'
+    inlineScript: |
+      cd $(terraformWorkingDirectory)
+      terraform plan

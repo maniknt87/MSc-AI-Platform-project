@@ -160,7 +160,7 @@ stages:
       displayName: 'Create Terraform State Storage'
 
       inputs:
-        azureSubscription: 'Azure-Terraform-Free-WIF'
+        azureSubscription: 'Azure-Terraform-Free-Connection'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
 
@@ -297,7 +297,7 @@ stages:
       displayName: 'Terraform Plan - Free Azure Subscription'
 
       inputs:
-        azureSubscription: 'Azure-Terraform-Free-WIF'
+        azureSubscription: 'Azure-Terraform-Free-Connection'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
 
@@ -419,7 +419,7 @@ stages:
       displayName: 'Terraform Apply - Free Azure Subscription'
 
       inputs:
-        azureSubscription: 'Azure-Terraform-Free-WIF'
+        azureSubscription: 'Azure-Terraform-Free-Connection'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
 

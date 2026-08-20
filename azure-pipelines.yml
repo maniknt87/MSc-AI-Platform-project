@@ -4,6 +4,15 @@ trigger:
 pool:
   name: devops-lin-agent
 
+parameters:
+- name: action
+  displayName: 'Terraform Action'
+  type: string
+  default: apply
+  values:
+  - apply
+  - destroy
+
 stages:
 
 # ============================================================
@@ -408,7 +417,7 @@ stages:
   displayName: 'Azure Terraform Apply - Free Subscription'
 
   dependsOn: Azure_Terraform_Plan
-  condition: succeeded()
+  condition: and(succeeded(), eq('${{ parameters.action }}', 'apply'))
 
   jobs:
   - job: Terraform_Apply
@@ -551,10 +560,10 @@ stages:
 # ============================================================
 
 - stage: Azure_Terraform_Destroy
-  displayName: 'TEMPORARY - Azure Terraform Destroy'
+  displayName: 'Azure Terraform Destroy'
 
   dependsOn: Azure_Terraform_Plan
-  condition: succeeded()
+  condition: and(succeeded(), eq('${{ parameters.action }}', 'destroy'))
 
   jobs:
   - job: Terraform_Destroy

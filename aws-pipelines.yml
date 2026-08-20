@@ -4,37 +4,62 @@ trigger:
 pool:
   name: devops-lin-agent
 
+parameters:
+- name: action
+  displayName: 'Terraform Action'
+  type: string
+  default: apply
+  values:
+  - apply
+  - destroy
+
 variables:
   terraformWorkingDirectory: 'backend/terraform/aws'
+  awsRegion: 'ap-south-1'
 
 steps:
+
+# ============================================================
+# STEP 1 - CHECKOUT
+# ============================================================
 
 - checkout: self
   displayName: 'Checkout repository'
 
 
-# =========================================================
-# Install Terraform
-# =========================================================
+# ============================================================
+# STEP 2 - INSTALL TERRAFORM
+# ============================================================
 
 - task: TerraformInstaller@1
   displayName: 'Install Terraform'
+
   inputs:
     terraformVersion: 'latest'
 
 
-# =========================================================
-# Terraform Init
-# =========================================================
+# ============================================================
+# STEP 3 - TERRAFORM VERSION
+# ============================================================
 
 - task: AWSShellScript@1
-  displayName: 'Terraform Init'
+  displayName: 'Terraform Version'
+
   inputs:
     awsCredentials: 'AWS-Terraform-Connection'
-    regionName: 'ap-south-1'
+    regionName: '$(awsRegion)'
     scriptType: 'inline'
+
     inlineScript: |
+
       set -e
+
+      echo "======================================"
+      echo "AWS Terraform Pipeline"
+      echo "======================================"
+
+      echo "Terraform version:"
+      terraform version
 
       echo "======================================"
       echo "AWS Identity"
@@ -42,17 +67,25 @@ steps:
 
       aws sts get-caller-identity
 
-      echo "======================================"
-      echo "Checking S3 Terraform State"
-      echo "======================================"
 
-      aws s3api head-object \
-        --bucket mani-terraform-state-699754982224 \
-        --key aws/terraform.tfstate \
-        --region ap-south-1
+# ============================================================
+# STEP 4 - TERRAFORM INIT
+# ============================================================
+
+- task: AWSShellScript@1
+  displayName: 'Terraform Init'
+
+  inputs:
+    awsCredentials: 'AWS-Terraform-Connection'
+    regionName: '$(awsRegion)'
+    scriptType: 'inline'
+
+    inlineScript: |
+
+      set -e
 
       echo "======================================"
-      echo "Terraform Init"
+      echo "AWS Terraform Init"
       echo "======================================"
 
       cd "$(terraformWorkingDirectory)"
@@ -60,72 +93,204 @@ steps:
       echo "Working directory:"
       pwd
 
-      terraform version
+      echo "======================================"
+      echo "Terraform initialization"
+      echo "======================================"
 
       terraform init \
-        -reconfigure \
-        -input=false
+        -input=false \
+        -reconfigure
 
       echo "======================================"
-      echo "Terraform State"
-      echo "======================================"
-
-      terraform state list
-
-      echo "======================================"
-      echo "Terraform Init completed"
+      echo "Terraform Init completed successfully"
       echo "======================================"
 
 
-# =========================================================
-# Terraform Validate
-# =========================================================
+# ============================================================
+# STEP 5 - TERRAFORM VALIDATE
+# ============================================================
 
 - task: AWSShellScript@1
   displayName: 'Terraform Validate'
+
   inputs:
     awsCredentials: 'AWS-Terraform-Connection'
-    regionName: 'ap-south-1'
+    regionName: '$(awsRegion)'
     scriptType: 'inline'
+
     inlineScript: |
+
       set -e
 
-      cd "$(terraformWorkingDirectory)"
+      echo "======================================"
+      echo "AWS Terraform Validate"
+      echo "======================================"
 
-      echo "======================================"
-      echo "Terraform Validate"
-      echo "======================================"
+      cd "$(terraformWorkingDirectory)"
 
       terraform validate
 
-      echo "Terraform validation completed"
+      echo "======================================"
+      echo "Terraform validation completed successfully"
+      echo "======================================"
 
 
-# =========================================================
-# Terraform Plan
-# =========================================================
+# ============================================================
+# STEP 6 - TERRAFORM PLAN - APPLY
+# ============================================================
 
 - task: AWSShellScript@1
-  displayName: 'Terraform Plan'
+  displayName: 'Terraform Plan - Apply'
+
+  condition: and(succeeded(), eq('${{ parameters.action }}', 'apply'))
+
   inputs:
     awsCredentials: 'AWS-Terraform-Connection'
-    regionName: 'ap-south-1'
+    regionName: '$(awsRegion)'
     scriptType: 'inline'
+
     inlineScript: |
+
       set -e
 
-      cd "$(terraformWorkingDirectory)"
+      echo "======================================"
+      echo "AWS Terraform Plan"
+      echo "Action: APPLY"
+      echo "======================================"
 
-      echo "======================================"
-      echo "Terraform Plan"
-      echo "======================================"
+      cd "$(terraformWorkingDirectory)"
 
       terraform plan \
         -input=false \
         -out=tfplan
 
       echo "======================================"
-      echo "Terraform Plan completed"
+      echo "Terraform Apply Plan Generated"
       echo "======================================"
 
+      terraform show tfplan
+
+
+# ============================================================
+# STEP 7 - TERRAFORM PLAN - DESTROY
+# ============================================================
+
+- task: AWSShellScript@1
+  displayName: 'Terraform Plan - Destroy'
+
+  condition: and(succeeded(), eq('${{ parameters.action }}', 'destroy'))
+
+  inputs:
+    awsCredentials: 'AWS-Terraform-Connection'
+    regionName: '$(awsRegion)'
+    scriptType: 'inline'
+
+    inlineScript: |
+
+      set -e
+
+      echo "======================================"
+      echo "AWS Terraform Destroy Plan"
+      echo "Action: DESTROY"
+      echo "======================================"
+
+      cd "$(terraformWorkingDirectory)"
+
+      terraform plan \
+        -destroy \
+        -input=false \
+        -out=tfplan
+
+      echo "======================================"
+      echo "Terraform Destroy Plan Generated"
+      echo "======================================"
+
+      terraform show tfplan
+
+
+# ============================================================
+# STEP 8 - TERRAFORM APPLY
+# ============================================================
+
+- task: AWSShellScript@1
+  displayName: 'Terraform Apply'
+
+  condition: and(succeeded(), in('${{ parameters.action }}', 'apply', 'destroy'))
+
+  inputs:
+    awsCredentials: 'AWS-Terraform-Connection'
+    regionName: '$(awsRegion)'
+    scriptType: 'inline'
+
+    inlineScript: |
+
+      set -e
+
+      cd "$(terraformWorkingDirectory)"
+
+      echo "======================================"
+      echo "Terraform Execution"
+      echo "======================================"
+
+      echo "Selected action:"
+      echo "${{ parameters.action }}"
+
+      echo "======================================"
+      echo "Checking Terraform Plan"
+      echo "======================================"
+
+      if [ ! -f tfplan ]; then
+        echo "ERROR: Terraform plan file was not found."
+        exit 1
+      fi
+
       ls -lh tfplan
+
+      echo "======================================"
+      echo "Executing Terraform Plan"
+      echo "======================================"
+
+      terraform apply \
+        -input=false \
+        tfplan
+
+      echo "======================================"
+      echo "Terraform execution completed successfully"
+      echo "======================================"
+
+
+# ============================================================
+# STEP 9 - TERRAFORM STATE
+# ============================================================
+
+- task: AWSShellScript@1
+  displayName: 'Terraform State Verification'
+
+  condition: succeeded()
+
+  inputs:
+    awsCredentials: 'AWS-Terraform-Connection'
+    regionName: '$(awsRegion)'
+    scriptType: 'inline'
+
+    inlineScript: |
+
+      set -e
+
+      echo "======================================"
+      echo "Terraform State Verification"
+      echo "======================================"
+
+      cd "$(terraformWorkingDirectory)"
+
+      echo "Terraform state:"
+      terraform state list || true
+
+      echo "======================================"
+      echo "AWS Terraform Pipeline Completed"
+      echo "======================================"
+
+      echo "Action:"
+      echo "${{ parameters.action }}"
+
+      echo "======================================"
